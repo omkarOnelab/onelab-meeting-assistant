@@ -1,0 +1,455 @@
+/* Global reset for login page */
+.login-container {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+}
+
+/* Remove any default browser styles */
+.login-container * {
+  box-sizing: border-box;
+}
+
+/* Ensure body and html have no margins */
+body, html {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  outline: none !important;
+  overflow-x: hidden;
+}
+
+/* Remove any Ant Design default borders */
+.ant-card {
+  border: none !important;
+}
+
+.ant-btn {
+  border: none !important;
+}
+
+/* Remove any focus outlines that might appear as borders */
+*:focus {
+  outline: none !important;
+}
+
+/* Login Container Styles */
+.login-container {
+  background-color: #1a1a1a;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  padding: 0;
+  margin: 0;
+  border: none;
+  outline: none;
+}
+
+.login-content {
+  display: flex;
+  width: 100%;
+  max-width: 1400px;
+  gap: 40px;
+  align-items: center;
+  padding: 20px;
+}
+
+.login-form-panel {
+  flex: 2;
+  padding: 20px;
+}
+
+.meeting-preview-panel {
+  flex: 1;
+  padding: 20px;
+}
+
+/* Logo Styles */
+.logo-container {
+  margin-bottom: 40px;
+}
+
+.logo-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  background-color: #ff69b4;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.logo-text {
+  color: #ff69b4;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+/* Main Heading Styles */
+.main-heading {
+  color: #fff;
+  margin-bottom: 16px;
+  font-size: 48px;
+  font-weight: 700;
+}
+
+.subtitle {
+  color: #ccc;
+  margin-bottom: 40px;
+  font-size: 18px;
+  max-width: 500px;
+  margin: 0 auto 40px;
+}
+
+/* Authentication Buttons */
+.auth-buttons {
+  width: 100%;
+  max-width: 400px;
+}
+
+.auth-button {
+  width: 100%;
+  height: 48px;
+  background-color: #333;
+  border-color: #555;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.auth-button:hover {
+  transform: translateY(-2px);
+}
+
+.auth-button.google:hover {
+  background-color: #4285f4;
+  border-color: #4285f4;
+  box-shadow: 0 8px 25px rgba(66, 133, 244, 0.3);
+}
+
+.auth-button.microsoft:hover {
+  background-color: #00a1f1;
+  border-color: #00a1f1;
+  box-shadow: 0 8px 25px rgba(0, 161, 241, 0.3);
+}
+
+/* Calendar Access Link */
+.calendar-link {
+  margin-top: 24px;
+  position: relative;
+}
+
+.calendar-link-text {
+  color: #ccc;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* Hover Info Card */
+.hover-info-card {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 16px;
+  z-index: 1000;
+  width: 600px;
+  max-width: 90vw;
+}
+
+.hover-card {
+  background-color: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+
+.hover-card-content {
+  display: flex;
+  gap: 24px;
+}
+
+.hover-card-left {
+  flex: 1;
+}
+
+.hover-card-right {
+  flex: 1;
+}
+
+.hover-card-title {
+  color: #fff;
+  margin-bottom: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  margin-top: 0;
+}
+
+.hover-card-text {
+  color: #fff;
+  margin-bottom: 8px;
+  font-size: 14px;
+  line-height: 1.4;
+  margin: 0 0 8px 0;
+}
+
+.hover-card-text:last-child {
+  margin-bottom: 0;
+}
+
+.highlight-text {
+  color: #ff69b4;
+  font-weight: 600;
+}
+
+/* Meeting Previews Container */
+.meeting-previews-container {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.meeting-previews-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.meeting-preview-card {
+  background-color: #ffffff;
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid #e9ecef;
+}
+
+.meeting-preview-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.meeting-preview-title {
+  color: #212529;
+  font-weight: 600;
+  display: block;
+  font-size: 13px;
+}
+
+.meeting-preview-time {
+  color: #6c757d;
+  font-size: 11px;
+  display: block;
+  margin-top: 1px;
+}
+
+/* Security Badge */
+.security-badge {
+  margin-top: 32px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  background-color: #39b54a;
+  padding: 8px 16px;
+  border-radius: 20px;
+  width: fit-content;
+  margin: 32px auto 0;
+}
+
+.security-badge-text {
+  color: #fff;
+  font-size: 12px;
+}
+
+/* Terms and Privacy */
+.terms-privacy {
+  margin-top: 24px;
+  max-width: 500px;
+  margin: 24px auto 0;
+  text-align: center;
+}
+
+.terms-text {
+  color: #ccc;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.terms-link {
+  color: #fff;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Meeting Preview Styles */
+.meeting-preview-space {
+  width: 100%;
+}
+
+.meeting-card {
+  background-color: #2a2a2a;
+  border: 1px solid #333;
+  border-radius: 12px;
+}
+
+.meeting-card-head {
+  border-bottom: 1px solid #333;
+  padding: 16px 20px;
+}
+
+.meeting-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.meeting-card-title-text {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.meeting-card-extra {
+  color: #ccc;
+  font-size: 14px;
+}
+
+.meeting-card-body {
+  padding: 20px;
+}
+
+.meeting-summary-title {
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+.meeting-tags {
+  margin-bottom: 16px;
+}
+
+.meeting-summary-text {
+  color: #ccc;
+  margin-bottom: 0;
+}
+
+.outline-title {
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+.outline-content {
+  color: #ccc;
+}
+
+.outline-item {
+  margin-bottom: 8px;
+}
+
+.outline-item-title {
+  color: #fff;
+  font-weight: 500;
+}
+
+.outline-item-time {
+  color: #4285f4;
+  text-decoration: underline;
+  margin-left: 8px;
+}
+
+.outline-list {
+  color: #ccc;
+  margin: 8px 0 0 20px;
+  padding: 0;
+}
+
+/* Testimonial Card */
+.testimonial-card {
+  background-color: #2a2a2a;
+  border: 1px solid #333;
+  border-radius: 12px;
+}
+
+.testimonial-content {
+  text-align: center;
+}
+
+.vercel-branding {
+  margin-bottom: 16px;
+}
+
+.vercel-icon {
+  width: 24px;
+  height: 24px;
+  background-color: #000;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+}
+
+.vercel-triangle {
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 10px solid #fff;
+}
+
+.vercel-text {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.testimonial-quote {
+  color: #fff;
+  font-size: 16px;
+  font-style: italic;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.testimonial-author {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.testimonial-author-info {
+  text-align: left;
+}
+
+.testimonial-author-name {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.testimonial-author-title {
+  color: #ccc;
+  font-size: 12px;
+}

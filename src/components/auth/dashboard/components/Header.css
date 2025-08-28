@@ -1,0 +1,49 @@
+/* Header Styles */
+.dashboard-header {
+  background: #fff;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  border-bottom: 1px solid #f0f0f0;
+  position: sticky;
+  top: 0;
+  z-index: 999;
+}
+
+.header-left {
+  flex: 1;
+  max-width: 400px;
+}
+
+.search-input {
+  border-radius: 20px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.free-meetings {
+  color: #52c41a;
+  font-weight: 500;
+}
+
+.upgrade-btn {
+  background: #722ed1;
+  border-color: #722ed1;
+}
+
+.capture-btn {
+  background: #722ed1;
+  border-color: #722ed1;
+}
+
+.icon-btn {
+  border: none;
+  box-shadow: none;
+}
+
