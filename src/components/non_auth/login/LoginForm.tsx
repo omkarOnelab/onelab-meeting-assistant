@@ -3,12 +3,52 @@ import { Button, Typography, Space, Card, Switch, message } from 'antd';
 import { GoogleOutlined, WindowsOutlined, LockOutlined, CalendarOutlined } from '@ant-design/icons';
 import { useAuth } from '../../../hooks/useAuth';
 import './Login.css';
+import { useGoogleLogin } from '@react-oauth/google';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+
 
 const { Title, Paragraph, Text } = Typography;
 
 const LoginForm = () => {
   const [showCalendarInfo, setShowCalendarInfo] = useState(false);
-  const { loginWithGoogle, loginWithMicrosoft, isLoading, error, clearAuthError } = useAuth();
+  const { loginWithMicrosoft, isLoading, error, clearAuthError } = useAuth();
+  const navigate = useNavigate();
+
+  console.log("import.meta.env.VITE_PUBLIC_AUTH_URL: ",import.meta.env.VITE_PUBLIC_AUTH_URL)
+  const loginWithGoogle = useGoogleLogin({
+    onSuccess: async tokenResponse => {
+      try {
+     
+        const response = await axios.post(
+          `${import.meta.env.VITE_PUBLIC_AUTH_URL}/user/google-login/`,
+          {
+            token: tokenResponse.access_token,
+          },
+          { withCredentials: true }
+        );
+
+        console.log("response: ", response)
+        console.log("user: ",response?.data?.user)
+
+        if (response?.data?.success) {
+          const payload = {
+            isAuthenticated: true,
+            isLoading: false,
+            user: response?.data?.user,
+          };
+          // dispatch(setUserProfile(payload));
+
+          // navigate('/dashboard');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    },
+    onError: error => {
+      console.error('Login Failed:', error);
+    },
+  });
 
   const handleGoogleLogin = async () => {
     try {
@@ -19,12 +59,12 @@ const LoginForm = () => {
         clientId: 'mock-client-id'
       };
       
-      const result = await loginWithGoogle(googleResponse);
-      if (result.success) {
-        message.success('Successfully logged in with Google!');
-      } else {
-        message.error(result.error || 'Google login failed');
-      }
+      // const result = await loginWithGoogle(googleResponse);
+      // if (result.success) {
+      //   message.success('Successfully logged in with Google!');
+      // } else {
+      //   message.error(result.error || 'Google login failed');
+      // }
     } catch (error) {
       message.error('Google login failed');
     }
@@ -87,8 +127,8 @@ const LoginForm = () => {
           icon={<GoogleOutlined />}
           size="large"
           className="auth-button google"
-          onClick={handleGoogleLogin}
-          loading={isLoading}
+          onClick={() => loginWithGoogle()}
+           loading={isLoading}
         >
           Continue with Google
         </Button>
