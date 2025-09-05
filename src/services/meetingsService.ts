@@ -138,6 +138,13 @@ export const meetingsService = {
       const response = await transcriptsService.getTranscripts(userId, page, pageSize);
       const transcripts = response.data;
       
+      // Debug logging
+      console.log('MeetingsService Debug:', {
+        transcriptsLength: transcripts.length,
+        transcripts: transcripts.map(t => ({ id: t.id, meetingid: t.meetingid })),
+        firstTranscript: transcripts[0]
+      });
+      
       // Convert transcripts to meetings format
       const meetings: Meeting[] = transcripts.map((transcript) => {
         // Parse the JSON strings safely
@@ -183,6 +190,12 @@ export const meetingsService = {
             actionItem: parsedActionItem
           }
         };
+      });
+
+      // Debug logging for final meetings
+      console.log('MeetingsService Final Debug:', {
+        meetingsLength: meetings.length,
+        meetings: meetings.map(m => ({ id: m.id, title: m.title, meetingid: m.transcript?.meetingid }))
       });
 
       return {

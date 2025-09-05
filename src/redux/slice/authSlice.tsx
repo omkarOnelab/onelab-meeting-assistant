@@ -66,7 +66,7 @@ export const authSlice = createSlice({
       state.error = null;
     },
   },
-  extraReducers: (builder) => {
+extraReducers: (builder) => {
     // Login cases
     builder
       .addCase(loginUser.pending, (state) => {
@@ -231,7 +231,7 @@ export const authSlice = createSlice({
         state.error = action.payload as string || 'Failed to check auth status';
         state.isAuthenticated = false;
       });
-  },
+},
 });
 
 export const { clearError, setLoading, updateUser, clearAuth, setUserFromBackend } = authSlice.actions;

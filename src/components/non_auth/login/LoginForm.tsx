@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Button, Typography, Space, Card, Switch, message } from 'antd';
-import { GoogleOutlined, WindowsOutlined, LockOutlined, CalendarOutlined } from '@ant-design/icons';
+import { useEffect } from 'react';
+import { Button, Typography, Space, Card, message } from 'antd';
+import { GoogleOutlined } from '@ant-design/icons';
 import { useGoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -36,7 +36,6 @@ import './Login.css';
 const { Title, Paragraph, Text } = Typography;
 
 const LoginForm = () => {
-  const [showCalendarInfo, setShowCalendarInfo] = useState(false);
   const { loginWithMicrosoft, isLoading, error, clearAuthError } = useAuth();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -60,7 +59,7 @@ const LoginForm = () => {
           localStorage.setItem('refreshToken', response.data.data.refresh);
           dispatch(setUserFromBackend(response.data));
           message.success('Successfully logged in with Google!');
-          navigate('/dashboard');
+          navigate('/auth/meetings');
         }
       } catch (error) {
         console.error('Error:', error);
@@ -105,125 +104,57 @@ const LoginForm = () => {
   }, [error, clearAuthError]);
 
   return (
-    <div style={{ textAlign: 'center' }}>
-      {/* Logo */}
-      <div className="logo-container">
-        <div className="logo-wrapper">
-          <div className="logo-icon">O</div>
-          <span className="logo-text">Onelab meeting assistant</span>
-        </div>
-      </div>
+    <div className="login-form-container">
+      {/* Login Card */}
+      <Card className="login-card">
+        <div className="login-card-content">
+          {/* Welcome Heading */}
+          <Title level={2} className="welcome-heading">
+            Welcome Back
+          </Title>
+          
+          {/* Subheading */}
+          <Paragraph className="welcome-subheading">
+            Sign in to access your meeting dashboard
+          </Paragraph>
 
-      {/* Main Heading */}
-      <Title level={1} className="main-heading">
-        Automate your meeting notes
-      </Title>
+          {/* Authentication Buttons */}
+          <Space direction="vertical" size="middle" className="auth-buttons">
+            <Button
+              icon={<GoogleOutlined />}
+              size="large"
+              className="auth-button google"
+              onClick={() => loginWithGoogle()}
+              loading={isLoading}
+            >
+              Continue with Google
+            </Button>
 
-      {/* Subtitle */}
-      <Paragraph className="subtitle">
-        Transcribe, summarize, search, and analyze all your voice conversations.
-      </Paragraph>
+            <Button
+              size="large"
+              className="auth-button enterprise"
+              onClick={handleMicrosoftLogin}
+              loading={isLoading}
+            >
+              SECURE ENTERPRISE LOGIN
+            </Button>
+          </Space>
 
-      {/* Authentication Buttons */}
-      <Space direction="vertical" size="middle" className="auth-buttons">
-        {/* TEMPORARY: Using mock login until Google OAuth is configured */}
-        <Button
-          icon={<GoogleOutlined />}
-          size="large"
-          className="auth-button google"
-          onClick={() => loginWithGoogle()}
-          loading={isLoading}
-        >
-          Continue with Google
-        </Button>
-
-        {/* <Button
-          icon={<WindowsOutlined />}
-          size="large"
-          className="auth-button microsoft"
-          onClick={handleMicrosoftLogin}
-          loading={isLoading}
-        >
-          Continue with Microsoft
-        </Button> */}
-      </Space>
-
-      {/* Calendar Access Link with Hover Info */}
-      <div className="calendar-link">
-        <Text
-          className="calendar-link-text"
-          onMouseEnter={() => setShowCalendarInfo(true)}
-          onMouseLeave={() => setShowCalendarInfo(false)}
-        >
-          Why does Onelab meeting assistant require access to my calendar?
-        </Text>
-
-        {/* Hover Info Card */}
-        {showCalendarInfo && (
-          <div className="hover-info-card">
-            <Card className="hover-card" bodyStyle={{ padding: '20px' }}>
-              <div className="hover-card-content">
-                {/* Left Section - Text Info */}
-                <div className="hover-card-left">
-                  <Title level={4} className="hover-card-title">
-                    Effortlessly transcribe your meetings.
-                  </Title>
-                  <Paragraph className="hover-card-text">
-                    Onelab meeting assistant syncs your calendar events containing web-conferencing links.
-                  </Paragraph>
-                  <Paragraph className="hover-card-text">
-                    You can easily <Text className="highlight-text">select meetings</Text> that you want Onelab to join and transcribe or set to <Text className="highlight-text">automatically transcribe meetings</Text>.
-                  </Paragraph>
-                </div>
-
-                {/* Right Section - Meeting Previews */}
-                <div className="hover-card-right">
-                  <div className="meeting-previews-container">
-                    <div className="meeting-previews-list">
-                      {/* Meeting Card 1 */}
-                      <div className="meeting-preview-card">
-                        <div className="meeting-preview-info">
-                          <CalendarOutlined style={{ color: '#ff69b4', fontSize: '16px' }} />
-                          <div>
-                            <Text className="meeting-preview-title">Website Redesign Discussion</Text>
-                            <Text className="meeting-preview-time">Feb 25 - 10:00 AM - 11:00 AM</Text>
-                          </div>
-                        </div>
-                        <Switch defaultChecked style={{ backgroundColor: '#ff69b4' }} size="small" />
-                      </div>
-
-                      {/* Meeting Card 2 */}
-                      <div className="meeting-preview-card">
-                        <div className="meeting-preview-info">
-                          <CalendarOutlined style={{ color: '#ff69b4', fontSize: '16px' }} />
-                          <div>
-                            <Text className="meeting-preview-title">Product Team Sync</Text>
-                            <Text className="meeting-preview-time">Feb 24 - 08:00 AM - 08:45 AM</Text>
-                          </div>
-                        </div>
-                        <Switch defaultChecked={false} style={{ backgroundColor: '#6c757d' }} size="small" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
+          {/* Security Footer */}
+          <div className="security-footer">
+            <Text className="security-text">
+              Protected by enterprise-grade security and encryption
+            </Text>
           </div>
-        )}
-      </div>
 
-      {/* Security Badge */}
-      <div className="security-badge">
-        <LockOutlined style={{ color: '#fff' }} />
-        <Text className="security-badge-text">Secured by 256-bit AES and 256-bit SSL/TLS encryption</Text>
-      </div>
-
-      {/* Terms and Privacy */}
-      <div className="terms-privacy">
-        <Text className="terms-text">
-          By signing up, I agree to Onelab meeting assistant's <Text className="terms-link">Terms of Service</Text>, <Text className="terms-link">Privacy Policy</Text>, and <Text className="terms-link">Data Processing Terms</Text>. Security is our top priority. <Text className="terms-link">Read</Text> about the steps we take to ensure security.
-        </Text>
-      </div>
+          {/* Terms and Privacy */}
+          <div className="terms-privacy">
+            <Text className="terms-text">
+              <Text className="terms-link">Terms of Service</Text> • <Text className="terms-link">Privacy Policy</Text>
+            </Text>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 };

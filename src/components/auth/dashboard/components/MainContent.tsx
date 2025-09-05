@@ -16,7 +16,7 @@ import {
 import { useAuth } from '../../../../hooks/useAuth';
 import { useDashboardPage } from '../../../../hooks/useDashboard';
 import type { SummaryCard, RecentMeeting, MeetingInsight } from '../../../../types/dashboard';
-import Meetings from './Meetings';
+import Meetings from './Meetingss';
 import './MainContent.css';
 
 const { Content } = Layout;

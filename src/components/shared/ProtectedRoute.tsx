@@ -48,8 +48,8 @@ const ProtectedRoute = ({
 
   // If authentication is NOT required and user IS authenticated (e.g., login page)
   if (!requireAuth && isAuthenticated) {
-    // Redirect to dashboard
-    return <Navigate to="/dashboard" replace />;
+    // Redirect to meetings page
+    return <Navigate to="/auth/meetings" replace />;
   }
 
   // Render children if authentication requirements are met

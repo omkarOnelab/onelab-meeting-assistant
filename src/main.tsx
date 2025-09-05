@@ -6,6 +6,7 @@ import { Provider } from 'react-redux'
 import { PersistGate } from 'redux-persist/integration/react'
 import store, { persistor } from './redux/store'
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import './index.css'
 
 
 // Simple loading component for PersistGate
@@ -22,11 +23,12 @@ const PersistLoading = () => (
   </div>
 );
 
-console.log("import.meta.env.VITE_GOOGLE_CLIENT_ID: ",import.meta.env.VITE_GOOGLE_CLIENT_ID)
+// Use the real client ID directly as fallback
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '123002971216-1olch542o8th6siojg0s9b08sojlho3d.apps.googleusercontent.com';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
 
     <Provider store={store}>
       <PersistGate loading={<PersistLoading />} persistor={persistor}>

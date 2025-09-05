@@ -1,4 +1,4 @@
-import Meetings from '../../../../components/auth/dashboard/components/Meetings';
+import Meetings from '../../../../components/auth/dashboard/components/Meetingss';
 
 const MeetingsPage = () => {
   return <Meetings />;

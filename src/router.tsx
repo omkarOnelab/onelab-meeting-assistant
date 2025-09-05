@@ -1,10 +1,11 @@
 import { createBrowserRouter } from "react-router-dom";
 import Root from "./layouts/Root";
 import NonAuth from "./layouts/NonAuth";
-import Auth from "./layouts/Auth";
-import Dashboard from "./layouts/Dashboard";
 import Login from "./pages/non_auth/login";
 import ProtectedRoute from "./components/shared/ProtectedRoute";
+import Dashboard from "./pages/auth/dashboard/Dashboard";
+import Meetings from "./pages/auth/dashboard/Meetings";
+import MeetingDetail from "./pages/auth/dashboard/MeetingDetails";
 
 export const router = createBrowserRouter([
   {
@@ -12,16 +13,24 @@ export const router = createBrowserRouter([
     element: <Root />,
     children: [
       {
-        path: "dashboard",
+        path: "auth",
         element: (
           <ProtectedRoute requireAuth={true}>
-            <Auth />
+            <Dashboard />
           </ProtectedRoute>
         ),
         children: [
           {
             path: "",
-            element: <Dashboard />,
+            element: <Meetings />,
+          },
+          {
+            path: "meetings",
+            element: <Meetings />,
+          },
+          {
+            path: "meetings/:id",
+            element: <MeetingDetail />,
           },
         ],
       },
@@ -38,6 +47,11 @@ export const router = createBrowserRouter([
             element: <Login />,
           },
         ],
+      },
+      // Direct login route for testing
+      {
+        path: "login",
+        element: <Login />,
       },
     ],
   },

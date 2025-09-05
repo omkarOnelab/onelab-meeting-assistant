@@ -316,13 +316,16 @@ export const useMeetingsPage = (page: number = 1, pageSize: number = 10) => {
   const allMeetings = useAllMeetings(page, pageSize);
   const mutations = useMeetingMutations();
 
+  // Flatten the meeting groups into a single array of meetings
+  const flattenedMeetings = allMeetings.meetingGroups.flatMap(group => group.meetings);
+
   return {
     myMeetings: myMeetings.meetings,
     myMeetingsLoading: myMeetings.loading,
     myMeetingsError: myMeetings.error,
     refetchMyMeetings: myMeetings.refetch,
     
-    allMeetings: allMeetings.meetingGroups,
+    allMeetings: flattenedMeetings,
     allMeetingsLoading: allMeetings.loading,
     allMeetingsError: allMeetings.error,
     refetchAllMeetings: allMeetings.refetch,

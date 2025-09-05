@@ -1,18 +1,15 @@
 import { useState } from 'react';
-import { Layout, Spin, Alert, Button, Typography, Pagination } from 'antd';
+import { Spin, Alert, Button, Typography, Pagination } from 'antd';
 import {
   CalendarOutlined,
   ClockCircleOutlined,
-  NumberOutlined,
   ArrowLeftOutlined,
   FileTextOutlined,
   BulbOutlined
 } from '@ant-design/icons';
-import { useMeetingsPage } from '../../../../hooks/useMeetings';
-import type { Meeting, MeetingGroup } from '../../../../types/meetings';
+import type { Meeting } from '../../../../types/meetings';
 import './Meetings.css';
 
-const { Content } = Layout;
 const { Title } = Typography;
 
 const Meetings = () => {
@@ -22,14 +19,101 @@ const Meetings = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   
-  // Use the production-ready API hooks with pagination
-  const {
-    allMeetings,
-    allMeetingsLoading,
-    allMeetingsError,
-    pagination,
-    setPage
-  } = useMeetingsPage(currentPage, pageSize);
+  // Mock data for testing
+  const mockMeetings: Meeting[] = [
+    {
+      id: 8,
+      title: "Meeting ngp-futp-zwq",
+      presenter: "-",
+      date: "Sep 3, 2025",
+      time: "10:07 AM",
+      duration: "-",
+      logo: "M",
+      logoColor: "#722ed1",
+      participants: [],
+      transcript: {
+        id: 8,
+        userId: "5",
+        meetingid: "ngp-futp-zwq",
+        transcription: [
+          { socket: 2, text: "Someone speak something. I have started this Chrome extension. Allow the", highlight: false },
+          { socket: 1, text: "Okay.", highlight: false },
+          { socket: 2, text: "Yes.", highlight: false },
+          { socket: 1, text: "So hello? Hello. My name is Akash.", highlight: false }
+        ],
+        summary: "The meeting convened to discuss the quarterly performance review and strategize for the upcoming quarter. The agenda included a review of the previous quarter's metrics, identification of key challenges, and the formulation of action plans to address these challenges.",
+        actionItem: [
+          { item: "Revamp the marketing strategy focusing on digital channels", owner: "Marketing Team", deadline: "2024-01-15" },
+          { item: "Obtain approval from upper management for the new marketing budget", owner: "Unassigned", deadline: "TBD" },
+          { item: "Request timely data from the analytics team to support the new strategy", owner: "Data Analytics Team", deadline: "2024-01-05" }
+        ],
+        created_at: "2025-09-03T10:07:38.276Z"
+      }
+    },
+    {
+      id: 9,
+      title: "Meeting ngp-futp-zwq",
+      presenter: "-",
+      date: "Sep 3, 2025",
+      time: "10:18 AM",
+      duration: "-",
+      logo: "M",
+      logoColor: "#722ed1",
+      participants: [],
+      transcript: {
+        id: 9,
+        userId: "5",
+        meetingid: "ngp-futp-zwq",
+        transcription: [
+          { socket: 2, text: "Yeah, Devan. We can continue.", highlight: false },
+          { socket: 1, text: "Okay. Okay. So as of now, we don't know why the summary is not coming correct.", highlight: false },
+          { socket: 2, text: "Yeah. I have just changed the summary part. Let's see how it will works.", highlight: false }
+        ],
+        summary: "The team discussed the progress of the current project, identified bottlenecks, and brainstormed solutions to improve efficiency.",
+        actionItem: [
+          { item: "Investigate the root cause of the bottlenecks", owner: "Alex", deadline: "Next team meeting on Friday" },
+          { item: "Implement new task management system", owner: "Sarah", deadline: "By end of the month" }
+        ],
+        created_at: "2025-09-03T10:18:04.974Z"
+      }
+    },
+    {
+      id: 10,
+      title: "Meeting abc-123-def",
+      presenter: "-",
+      date: "Sep 2, 2025",
+      time: "2:30 PM",
+      duration: "-",
+      logo: "M",
+      logoColor: "#722ed1",
+      participants: [],
+      transcript: {
+        id: 10,
+        userId: "5",
+        meetingid: "abc-123-def",
+        transcription: [
+          { socket: 1, text: "Welcome everyone to today's meeting.", highlight: false },
+          { socket: 2, text: "Thank you for having me.", highlight: false }
+        ],
+        summary: "Brief introductory meeting to discuss project status.",
+        actionItem: [
+          { item: "Send meeting notes to all participants", owner: "John", deadline: "Tomorrow" }
+        ],
+        created_at: "2025-09-02T14:30:00.000Z"
+      }
+    }
+  ];
+
+  // Use mock data instead of API
+  const allMeetings = mockMeetings;
+  const allMeetingsLoading = false;
+  const allMeetingsError = null;
+  const pagination = {
+    page: currentPage,
+    pageSize: pageSize,
+    total: mockMeetings.length,
+    totalPages: Math.ceil(mockMeetings.length / pageSize)
+  };
 
   // Handle meeting click
   const handleMeetingClick = (meeting: Meeting) => {
@@ -213,6 +297,20 @@ const Meetings = () => {
       );
     }
 
+    // Show empty state
+    if (!allMeetings || allMeetings.length === 0) {
+      return (
+        <div className="all-meetings-content">
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+            <div style={{ textAlign: 'center' }}>
+              <h3>No meetings found</h3>
+              <p>There are no meetings available at the moment.</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="all-meetings-content">
         <div className="meetings-table">
@@ -225,56 +323,48 @@ const Meetings = () => {
             <div className="header-cell">DURATION</div>
           </div>
           
-          {allMeetings.map((group: MeetingGroup, groupIndex: number) => (
-            <div key={groupIndex} className="meeting-group">
-              {/* <div className="meeting-group-header">
-                <Text strong>{group.dateRange} ({group.meetingCount} Meeting{group.meetingCount > 1 ? 's' : ''})</Text>
-              </div> */}
-              
-              {group.meetings.map((meeting: Meeting) => (
-                <div key={meeting.id} className="meeting-row">
-                  <div className="meeting-cell meeting-info">
-                    <div>
-                      <div 
-                        className="meeting-title-text clickable-title"
-                        onClick={() => handleMeetingClick(meeting)}
-                      >
-                        {meeting.title}
-                      </div>
-                    </div>
+          {allMeetings.map((meeting: Meeting) => (
+            <div key={meeting.id} className="meeting-row">
+              <div className="meeting-cell meeting-info">
+                <div>
+                  <div 
+                    className="meeting-title-text clickable-title"
+                    onClick={() => handleMeetingClick(meeting)}
+                  >
+                    {meeting.title}
                   </div>
-                  <div className="meeting-cell">
-                    <div className="meeting-presenter-text">{meeting.presenter}</div>
-                  </div>
-                  <div className="meeting-cell">
-                    <div className="meeting-participants">
-                      {meeting.participants && meeting.participants.length > 0 ? (
-                        <div className="participants-list">
-                          {meeting.participants.slice(0, 2).map((participant, index) => (
-                            <span key={index} className="participant-tag">
-                              {participant}
-                            </span>
-                          ))}
-                          {meeting.participants.length > 2 && (
-                            <span className="participant-more">
-                              +{meeting.participants.length - 2} more
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="no-participants">No participants</span>
+                </div>
+              </div>
+              <div className="meeting-cell">
+                <div className="meeting-presenter-text">{meeting.presenter}</div>
+              </div>
+              <div className="meeting-cell">
+                <div className="meeting-participants">
+                  {meeting.participants && meeting.participants.length > 0 ? (
+                    <div className="participants-list">
+                      {meeting.participants.slice(0, 2).map((participant, index) => (
+                        <span key={index} className="participant-tag">
+                          {participant}
+                        </span>
+                      ))}
+                      {meeting.participants.length > 2 && (
+                        <span className="participant-more">
+                          +{meeting.participants.length - 2} more
+                        </span>
                       )}
                     </div>
-                  </div>
-                  <div className="meeting-cell">
-                    <CalendarOutlined /> {meeting.date}
-                  </div>
-                  <div className="meeting-cell">
-                    <ClockCircleOutlined /> {meeting.time}
-                  </div>
-                  <div className="meeting-cell">{meeting.duration}</div>
+                  ) : (
+                    <span className="no-participants">-</span>
+                  )}
                 </div>
-              ))}
+              </div>
+              <div className="meeting-cell">
+                <CalendarOutlined /> {meeting.date}
+              </div>
+              <div className="meeting-cell">
+                <ClockCircleOutlined /> {meeting.time}
+              </div>
+              <div className="meeting-cell">{meeting.duration}</div>
             </div>
           ))}
         </div>
@@ -293,7 +383,6 @@ const Meetings = () => {
               }
               onChange={(page) => {
                 setCurrentPage(page);
-                setPage(page);
               }}
             />
           </div>
@@ -303,63 +392,9 @@ const Meetings = () => {
   };
 
   return (
-    <Layout className="meetings-layout">
-      {/* Left Sidebar */}
-      {/* <Sider width={280} className="meetings-left-sider"> */}
-        {/* <div className="meetings-left-content"> */}
-        <NumberOutlined />
-
-          {/* My Meetings Section */}
-          {/* <VideoCameraOutlined /> */}
-
-          {/* <div className="meetings-section">
-            <div className="section-title">My Meetings</div> */}
-            {/* <div 
-              className={`meeting-tab ${activeTab === 'my-meetings' ? 'active' : ''}`}
-              onClick={() => setActiveTab('my-meetings')}
-            >
-              <NumberOutlined />
-              <span>My Meetings</span>
-            </div> */}
-            {/* <div 
-              className={`meeting-tab ${activeTab === 'all-meetings' ? 'active' : ''}`}
-              onClick={() => setActiveTab('all-meetings')}
-            >
-              <VideoCameraOutlined />
-              <span>All Meetings</span>
-            </div> */}
-            {/* <div className="meeting-tab">
-              <span>Shared With Me</span>
-            </div> */}
-          {/* </div> */}
-
-          {/* All Channels Section */}
-          {/* <div className="meetings-section">
-            <div className="section-title">All channels</div>
-            <div className="meeting-tab">
-              <NumberOutlined />
-              <span>#</span>
-            </div>
-            <div className="channels-info">
-              <Text type="secondary">Create channels to organize your conversations.</Text>
-              <Button type="primary" icon={<PlusOutlined />} className="channel-btn">
-                Channel
-              </Button>
-            </div>
-          </div> */}
-        {/* </div> */}
-      {/* </Sider> */}
-
-      {/* Main Content */}
-      {/* <Content className="meetings-main-content">
-        {activeTab === 'my-meetings' ? renderMyMeetings() : renderAllMeetings()}
-      </Content> */}
-
-       <Content className="meetings-main-content">
-        {showMeetingDetails ? renderMeetingDetails() : renderAllMeetings()}
-      </Content>
-      
-    </Layout>
+    <div className="meetings-container">
+      {showMeetingDetails ? renderMeetingDetails() : renderAllMeetings()}
+    </div>
   );
 };
 

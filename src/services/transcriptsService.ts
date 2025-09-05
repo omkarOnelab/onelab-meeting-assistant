@@ -31,6 +31,20 @@ export const transcriptsService = {
   }> {
     try {
       const response = await api.get(`/api/transcripts/?userId=${userId}&page=${page}&pageSize=${pageSize}`);
+      
+      // Debug logging
+      console.log('TranscriptsService Debug:', {
+        fullResponse: response.data,
+        dataArray: response.data.data,
+        dataLength: response.data.data?.length,
+        pagination: {
+          page: response.data.page,
+          pageSize: response.data.pageSize,
+          total: response.data.total,
+          totalPages: response.data.totalPages
+        }
+      });
+      
       return {
         data: response.data.data || [],
         pagination: {
