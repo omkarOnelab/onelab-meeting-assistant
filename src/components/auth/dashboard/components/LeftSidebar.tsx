@@ -1,11 +1,17 @@
 
 import { Layout, Typography, Avatar, Button } from 'antd';
 import {
-  HomeOutlined,
+  // HomeOutlined,
   VideoCameraOutlined,
-  SoundOutlined,
-  UploadOutlined,
-  MoreOutlined
+  // SoundOutlined,
+  // UploadOutlined,
+  // MoreOutlined,
+  // AppstoreOutlined,
+  // BarChartOutlined,
+  // StarOutlined,
+  // TeamOutlined,
+  // CrownOutlined,
+  // SettingOutlined
 } from '@ant-design/icons';
 import './LeftSidebar.css';
 
@@ -25,17 +31,17 @@ interface LeftSidebarProps {
 
 const LeftSidebar = ({ activeTab, onTabChange }: LeftSidebarProps) => {
   const navigationItems: NavigationItem[] = [
-    { icon: <HomeOutlined />, label: 'Home', active: activeTab === 'home' },
+    // { icon: <HomeOutlined />, label: 'Home', active: activeTab === 'home' },
     { icon: <VideoCameraOutlined />, label: 'Meetings', active: activeTab === 'meetings' },
-    { icon: <SoundOutlined />, label: 'Meeting Status', active: activeTab === 'meeting-status' },
-    { icon: <UploadOutlined />, label: 'Uploads', active: activeTab === 'uploads' },
+    // { icon: <SoundOutlined />, label: 'Meeting Status', active: activeTab === 'meeting-status' },
+    // { icon: <UploadOutlined />, label: 'Uploads', active: activeTab === 'uploads' },
     // { icon: <AppstoreOutlined />, label: 'Integrations', active: activeTab === 'integrations' },
     // { icon: <BarChartOutlined />, label: 'Analytics', active: activeTab === 'analytics' },
     // { icon: <StarOutlined />, label: 'AI Apps', active: activeTab === 'ai-apps' },
     // { icon: <TeamOutlined />, label: 'Team', active: activeTab === 'team' },
     // { icon: <CrownOutlined />, label: 'Upgrade', active: activeTab === 'upgrade' },
     // { icon: <SettingOutlined />, label: 'Settings', active: activeTab === 'settings' },
-    { icon: <MoreOutlined />, label: 'More', active: activeTab === 'more' }
+    // { icon: <MoreOutlined />, label: 'More', active: activeTab === 'more' }
   ];
 
   const handleTabClick = (label: string) => {
@@ -63,7 +69,7 @@ const LeftSidebar = ({ activeTab, onTabChange }: LeftSidebarProps) => {
           ))}
         </nav>
         
-        <div className="team-section">
+        {/* <div className="team-section">
           <div className="team-card">
             <div className="team-info">
               <Avatar size={32} style={{ backgroundColor: '#52c41a' }}>R</Avatar>
@@ -74,7 +80,7 @@ const LeftSidebar = ({ activeTab, onTabChange }: LeftSidebarProps) => {
             </div>
             <Button type="primary" size="small">Request to join</Button>
           </div>
-        </div>
+        </div> */}
       </div>
     </Sider>
   );

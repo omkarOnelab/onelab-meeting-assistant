@@ -1,7 +1,7 @@
 
 import LoginForm from './LoginForm';
 import './Login.css';
-import MeetingPreview from './MeetingPreview';
+// import MeetingPreview from './MeetingPreview';
 
 const Login = () => {
   return (
@@ -13,9 +13,9 @@ const Login = () => {
         </div>
 
         {/* Right Panel - Meeting Preview */}
-        <div className="meeting-preview-panel">
+        {/* <div className="meeting-preview-panel">
           <MeetingPreview />
-        </div>
+        </div> */}
       </div>
     </div>
   );

@@ -24,6 +24,8 @@ export const useAuth = () => {
   // Destructure auth state for easy access
   const {
     user,
+    workspace,
+    membership,
     token,
     refreshToken: storedRefreshToken,
     isAuthenticated,
@@ -126,9 +128,29 @@ export const useAuth = () => {
     dispatch(updateUser(updates));
   };
 
+  // Helper function to get user's full name
+  const getUserFullName = () => {
+    if (user) {
+      return `${user.first_name} ${user.last_name}`.trim();
+    }
+    return '';
+  };
+
+  // Helper function to get user's email
+  const getUserEmail = () => {
+    return user?.email || '';
+  };
+
+  // Helper function to get user's sign up type
+  const getUserSignUpType = () => {
+    return user?.sign_up_type || '';
+  };
+
   return {
     // State
     user,
+    workspace,
+    membership,
     token,
     storedRefreshToken,
     isAuthenticated,
@@ -146,5 +168,10 @@ export const useAuth = () => {
     checkAuth,
     clearAuthError,
     updateUserProfile,
+    
+    // Helper functions
+    getUserFullName,
+    getUserEmail,
+    getUserSignUpType,
   };
 };

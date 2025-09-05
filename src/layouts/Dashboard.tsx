@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Layout } from 'antd';
+import { useAuth } from '../hooks/useAuth';
 import LeftSidebar from '../components/auth/dashboard/components/LeftSidebar';
 import Header from '../components/auth/dashboard/components/Header';
 import MainContent from '../components/auth/dashboard/components/MainContent';
 import './Dashboard.css';
 
 const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState('meetings');
+  const { getUserFullName } = useAuth();
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -39,6 +41,7 @@ const Dashboard = () => {
           onSearch={handleSearch}
           onUpgrade={handleUpgrade}
           onCapture={handleCapture}
+          userName={getUserFullName()}
         />
         
         <MainContent activeTab={activeTab} />

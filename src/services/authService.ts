@@ -1,146 +1,204 @@
+// Authentication API Service
+// This service handles all authentication-related API calls
+// Now using real backend API at http://127.0.0.1:8000/
+
+import axios from 'axios';
 import type { 
   LoginCredentials, 
   RegisterCredentials, 
-  AuthResponse, 
-  GoogleAuthResponse,
+  BackendAuthResponse, 
   MicrosoftAuthResponse 
 } from '../types/auth';
 
-// Mock API service for now - replace with actual axios implementation
+// Base API configuration
+const API_BASE_URL = 'http://127.0.0.1:8000';
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to add auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor to handle token refresh
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      try {
+        const refreshToken = localStorage.getItem('refreshToken');
+        if (refreshToken) {
+          const response = await axios.post(`${API_BASE_URL}/auth/refresh/`, {
+            refresh: refreshToken
+          });
+          
+          const { access } = response.data;
+          localStorage.setItem('token', access);
+          originalRequest.headers.Authorization = `Bearer ${access}`;
+          
+          return api(originalRequest);
+        }
+      } catch (refreshError) {
+        // Refresh failed, redirect to login
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        window.location.href = '/non-auth/login';
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
+// Authentication service with real backend integration
 export const authService = {
   // Traditional email/password login
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    // Mock implementation - replace with actual API call
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (credentials.email && credentials.password) {
-          resolve({
-            user: {
-              id: '1',
-              email: credentials.email,
-              name: 'Mock User',
-              role: 'user',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-            token: 'mock-jwt-token',
-            refreshToken: 'mock-refresh-token',
-          });
-        } else {
-          reject(new Error('Invalid credentials'));
-        }
-      }, 1000);
-    });
+  async login(credentials: LoginCredentials): Promise<BackendAuthResponse> {
+    try {
+      const response = await api.post('/api/auth/login/', {
+        email: credentials.email,
+        password: credentials.password
+      });
+
+      if (response.data && response.data.success && response.data.data) {
+        return response.data;
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      throw new Error(error.response?.data?.message || error.message || 'Login failed');
+    }
   },
 
   // User registration
-  async register(credentials: RegisterCredentials): Promise<AuthResponse> {
-    // Mock implementation - replace with actual API call
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (credentials.password === credentials.confirmPassword) {
-          resolve({
-            user: {
-              id: '1',
-              email: credentials.email,
-              name: credentials.name,
-              role: 'user',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-            token: 'mock-jwt-token',
-            refreshToken: 'mock-refresh-token',
-          });
-        } else {
-          reject(new Error('Passwords do not match'));
-        }
-      }, 1000);
-    });
+  async register(credentials: RegisterCredentials): Promise<BackendAuthResponse> {
+    try {
+      const response = await api.post('/api/auth/register/', {
+        email: credentials.email,
+        password: credentials.password,
+        first_name: credentials.name.split(' ')[0] || credentials.name,
+        last_name: credentials.name.split(' ')[1] || '',
+        confirm_password: credentials.confirmPassword
+      });
+
+      if (response.data && response.data.success && response.data.data) {
+        return response.data;
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      throw new Error(error.response?.data?.message || error.message || 'Registration failed');
+    }
   },
 
   // Google OAuth login
-  async googleLogin(_googleResponse: GoogleAuthResponse): Promise<AuthResponse> {
-    // Mock implementation - replace with actual API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          user: {
-            id: '1',
-            email: 'user@gmail.com',
-            name: 'Google User',
-            role: 'user',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-          token: 'mock-jwt-token',
-          refreshToken: 'mock-refresh-token',
-        });
-      }, 1000);
-    });
+  async googleLogin(googleResponse: any): Promise<BackendAuthResponse> {
+    try {
+      const response = await api.post('/api/user/google-login/', {
+        token: googleResponse.access_token
+      });
+
+      if (response.data && response.data.success && response.data.data) {
+        return response.data;
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (error: any) {
+      console.error('Google login error:', error);
+      throw new Error(error.response?.data?.message || error.message || 'Google login failed');
+    }
   },
 
   // Microsoft OAuth login
-  async microsoftLogin(_microsoftResponse: MicrosoftAuthResponse): Promise<AuthResponse> {
-    // Mock implementation - replace with actual API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          user: {
-            id: '1',
-            email: 'user@microsoft.com',
-            name: 'Microsoft User',
-            role: 'user',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-          token: 'mock-jwt-token',
-          refreshToken: 'mock-refresh-token',
-        });
-      }, 1000);
-    });
+  async microsoftLogin(microsoftResponse: MicrosoftAuthResponse): Promise<BackendAuthResponse> {
+    try {
+      const response = await api.post('/api/auth/microsoft-login/', {
+        token: microsoftResponse.accessToken
+      });
+
+      if (response.data && response.data.success && response.data.data) {
+        return response.data;
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (error: any) {
+      console.error('Microsoft login error:', error);
+      throw new Error(error.response?.data?.message || error.message || 'Microsoft login failed');
+    }
   },
 
   // Logout
   async logout(): Promise<void> {
-    // Mock implementation - replace with actual API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-        resolve();
-      }, 500);
-    });
+    try {
+      await api.post('/auth/logout/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Continue with local logout even if API call fails
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+    }
   },
 
   // Get current user profile
-  async getCurrentUser(): Promise<AuthResponse> {
-    // Mock implementation - replace with actual API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          user: {
-            id: '1',
-            email: 'user@example.com',
-            name: 'Current User',
-            role: 'user',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-          token: 'mock-jwt-token',
-          refreshToken: 'mock-refresh-token',
-        });
-      }, 500);
-    });
+  async getCurrentUser(): Promise<BackendAuthResponse> {
+    try {
+      const response = await api.get('/api/auth/user/');
+
+      if (response.data && response.data.success && response.data.data) {
+        return response.data;
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (error: any) {
+      console.error('Get current user error:', error);
+      throw new Error(error.response?.data?.message || error.message || 'Failed to get user data');
+    }
   },
 
   // Refresh token
   async refreshToken(): Promise<{ token: string }> {
-    // Mock implementation - replace with actual API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({ token: 'new-mock-jwt-token' });
-      }, 500);
-    });
+    try {
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        throw new Error('No refresh token available');
+      }
+
+      const response = await api.post('/auth/refresh/', {
+        refresh: refreshToken
+      });
+
+      const newToken = response.data.access || response.data.token;
+      localStorage.setItem('token', newToken);
+
+      return { token: newToken };
+    } catch (error: any) {
+      console.error('Token refresh error:', error);
+      // Clear tokens on refresh failure
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      throw new Error(error.response?.data?.message || error.message || 'Token refresh failed');
+    }
   },
 
   // Check if user is authenticated

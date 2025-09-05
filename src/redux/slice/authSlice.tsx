@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import type { AuthState, User, AuthResponse } from '../../types/auth';
+import type { AuthState, BackendUser, BackendAuthResponse } from '../../types/auth';
 import {
   loginUser,
   registerUser,
@@ -14,6 +14,8 @@ import {
 
 const initialState: AuthState = {
   user: null,
+  workspace: null,
+  membership: null,
   token: null,
   refreshToken: null,
   isAuthenticated: false,
@@ -36,7 +38,7 @@ export const authSlice = createSlice({
     },
     
     // Update user profile
-    updateUser: (state, action: PayloadAction<Partial<User>>) => {
+    updateUser: (state, action: PayloadAction<Partial<BackendUser>>) => {
       if (state.user) {
         state.user = { ...state.user, ...action.payload };
       }
@@ -50,6 +52,19 @@ export const authSlice = createSlice({
       state.isAuthenticated = false;
       state.error = null;
     },
+
+    // Set user from backend response (for direct integration)
+    setUserFromBackend: (state, action: PayloadAction<BackendAuthResponse>) => {
+      const { data } = action.payload;
+      state.user = data.user;
+      state.workspace = data.workspace;
+      state.membership = data.membership;
+      state.token = data.access;
+      state.refreshToken = data.refresh;
+      state.isAuthenticated = true;
+      state.isLoading = false;
+      state.error = null;
+    },
   },
   extraReducers: (builder) => {
     // Login cases
@@ -58,11 +73,14 @@ export const authSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(loginUser.fulfilled, (state, action: PayloadAction<AuthResponse>) => {
+      .addCase(loginUser.fulfilled, (state, action: PayloadAction<BackendAuthResponse>) => {
         state.isLoading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
-        state.refreshToken = action.payload.refreshToken;
+        const { data } = action.payload;
+        state.user = data.user;
+        state.workspace = data.workspace;
+        state.membership = data.membership;
+        state.token = data.access;
+        state.refreshToken = data.refresh;
         state.isAuthenticated = true;
         state.error = null;
       })
@@ -77,11 +95,14 @@ export const authSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(registerUser.fulfilled, (state, action: PayloadAction<AuthResponse>) => {
+      .addCase(registerUser.fulfilled, (state, action: PayloadAction<BackendAuthResponse>) => {
         state.isLoading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
-        state.refreshToken = action.payload.refreshToken;
+        const { data } = action.payload;
+        state.user = data.user;
+        state.workspace = data.workspace;
+        state.membership = data.membership;
+        state.token = data.access;
+        state.refreshToken = data.refresh;
         state.isAuthenticated = true;
         state.error = null;
       })
@@ -96,11 +117,14 @@ export const authSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(googleLogin.fulfilled, (state, action: PayloadAction<AuthResponse>) => {
+      .addCase(googleLogin.fulfilled, (state, action: PayloadAction<BackendAuthResponse>) => {
         state.isLoading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
-        state.refreshToken = action.payload.refreshToken;
+        const { data } = action.payload;
+        state.user = data.user;
+        state.workspace = data.workspace;
+        state.membership = data.membership;
+        state.token = data.access;
+        state.refreshToken = data.refresh;
         state.isAuthenticated = true;
         state.error = null;
       })
@@ -115,11 +139,14 @@ export const authSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(microsoftLogin.fulfilled, (state, action: PayloadAction<AuthResponse>) => {
+      .addCase(microsoftLogin.fulfilled, (state, action: PayloadAction<BackendAuthResponse>) => {
         state.isLoading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
-        state.refreshToken = action.payload.refreshToken;
+        const { data } = action.payload;
+        state.user = data.user;
+        state.workspace = data.workspace;
+        state.membership = data.membership;
+        state.token = data.access;
+        state.refreshToken = data.refresh;
         state.isAuthenticated = true;
         state.error = null;
       })
@@ -151,11 +178,14 @@ export const authSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(getCurrentUser.fulfilled, (state, action: PayloadAction<AuthResponse>) => {
+      .addCase(getCurrentUser.fulfilled, (state, action: PayloadAction<BackendAuthResponse>) => {
         state.isLoading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
-        state.refreshToken = action.payload.refreshToken;
+        const { data } = action.payload;
+        state.user = data.user;
+        state.workspace = data.workspace;
+        state.membership = data.membership;
+        state.token = data.access;
+        state.refreshToken = data.refresh;
         state.isAuthenticated = true;
         state.error = null;
       })
@@ -204,5 +234,5 @@ export const authSlice = createSlice({
   },
 });
 
-export const { clearError, setLoading, updateUser, clearAuth } = authSlice.actions;
+export const { clearError, setLoading, updateUser, clearAuth, setUserFromBackend } = authSlice.actions;
 export default authSlice.reducer;

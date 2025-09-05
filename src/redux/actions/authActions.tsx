@@ -15,8 +15,8 @@ export const loginUser = createAsyncThunk(
       const response = await authService.login(credentials);
       
       // Store tokens in localStorage
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('refreshToken', response.refreshToken);
+      localStorage.setItem('token', response.data.access);
+      localStorage.setItem('refreshToken', response.data.refresh);
       
       return response;
     } catch (error: any) {
@@ -33,8 +33,8 @@ export const registerUser = createAsyncThunk(
       const response = await authService.register(credentials);
       
       // Store tokens in localStorage
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('refreshToken', response.refreshToken);
+      localStorage.setItem('token', response.data.access);
+      localStorage.setItem('refreshToken', response.data.refresh);
       
       return response;
     } catch (error: any) {
@@ -51,8 +51,8 @@ export const googleLogin = createAsyncThunk(
       const response = await authService.googleLogin(googleResponse);
       
       // Store tokens in localStorage
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('refreshToken', response.refreshToken);
+      localStorage.setItem('token', response.data.access);
+      localStorage.setItem('refreshToken', response.data.refresh);
       
       return response;
     } catch (error: any) {
@@ -69,8 +69,8 @@ export const microsoftLogin = createAsyncThunk(
       const response = await authService.microsoftLogin(microsoftResponse);
       
       // Store tokens in localStorage
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('refreshToken', response.refreshToken);
+      localStorage.setItem('token', response.data.access);
+      localStorage.setItem('refreshToken', response.data.refresh);
       
       return response;
     } catch (error: any) {

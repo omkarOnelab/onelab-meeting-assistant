@@ -47,3 +47,124 @@
   box-shadow: none;
 }
 
+/* Profile Popover Styles */
+.profile-popover {
+  width: 280px;
+  padding: 0;
+  margin: 0;
+}
+
+.profile-section {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  background: #fafafa;
+}
+
+.profile-greeting {
+  font-size: 16px;
+  font-weight: 600;
+  color: #262626;
+  margin-bottom: 4px;
+}
+
+.profile-email {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.profile-card {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.profile-card:last-of-type {
+  border-bottom: none;
+}
+
+.profile-card-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profile-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #262626;
+  margin-bottom: 4px;
+}
+
+.profile-card-meta {
+  font-size: 12px;
+  color: #8c8c8c;
+  margin-top: 4px;
+}
+
+.upgrade-inline-btn {
+  margin-top: 8px;
+  background: #52c41a;
+  border-color: #52c41a;
+  border-radius: 6px;
+  font-weight: 500;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.upgrade-inline-btn:hover {
+  background: #73d13d;
+  border-color: #73d13d;
+}
+
+.profile-menu {
+  padding: 8px 0;
+}
+
+.profile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  color: #595959;
+}
+
+.profile-menu-item:hover {
+  background: #f5f5f5;
+  color: #262626;
+}
+
+.profile-menu-item.logout {
+  color: #ff4d4f;
+  border-top: 1px solid #f0f0f0;
+  margin-top: 4px;
+}
+
+.profile-menu-item.logout:hover {
+  background: #fff2f0;
+  color: #ff4d4f;
+}
+
+.profile-menu-item span {
+  font-weight: 500;
+}
+
+/* Popover wrapper customization */
+.profile-popover-wrapper .ant-popover-inner {
+  padding: 0;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+}
+
+.profile-popover-wrapper .ant-popover-inner-content {
+  padding: 0;
+}
+
+.profile-popover-wrapper .ant-popover-arrow {
+  display: none;
+}
+
