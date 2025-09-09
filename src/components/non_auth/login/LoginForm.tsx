@@ -33,10 +33,10 @@ import './Login.css';
   DO NOT delete the commented code; it is the production-ready logic.
 */
 
-const { Title, Paragraph, Text } = Typography;
+const { Title, Paragraph } = Typography;
 
 const LoginForm = () => {
-  const { loginWithMicrosoft, isLoading, error, clearAuthError } = useAuth();
+  const { isLoading, error, clearAuthError } = useAuth();
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -49,7 +49,7 @@ const LoginForm = () => {
     onSuccess: async tokenResponse => {
       try {
         const response = await axios.post(
-          'http://127.0.0.1:8000/api/user/google-login/',
+          `${import.meta.env.VITE_PUBLIC_AUTH_URL}/user/google-login/`,
           { token: tokenResponse.access_token },
           { withCredentials: true }
         );
@@ -78,23 +78,23 @@ const LoginForm = () => {
   // const handleMockGoogleLogin = async () => { ... };
   // =====================================================================
 
-  const handleMicrosoftLogin = async () => {
-    try {
-      const microsoftResponse = {
-        accessToken: 'mock-access-token',
-        idToken: 'mock-id-token',
-      };
+  // const handleMicrosoftLogin = async () => {
+  //   try {
+  //     const microsoftResponse = {
+  //       accessToken: 'mock-access-token',
+  //       idToken: 'mock-id-token',
+  //     };
 
-      const result = await loginWithMicrosoft(microsoftResponse);
-      if (result.success) {
-        message.success('Successfully logged in with Microsoft!');
-      } else {
-        message.error(result.error || 'Microsoft login failed');
-      }
-    } catch (error) {
-      message.error('Microsoft login failed');
-    }
-  };
+  //     const result = await loginWithMicrosoft(microsoftResponse);
+  //     if (result.success) {
+  //       message.success('Successfully logged in with Microsoft!');
+  //     } else {
+  //       message.error(result.error || 'Microsoft login failed');
+  //     }
+  //   } catch (error) {
+  //     message.error('Microsoft login failed');
+  //   }
+  // };
 
   // Clear error when component mounts or when error changes
   useEffect(() => {
@@ -130,29 +130,29 @@ const LoginForm = () => {
               Continue with Google
             </Button>
 
-            <Button
+            {/* <Button
               size="large"
               className="auth-button enterprise"
               onClick={handleMicrosoftLogin}
               loading={isLoading}
             >
               SECURE ENTERPRISE LOGIN
-            </Button>
+            </Button> */}
           </Space>
 
           {/* Security Footer */}
-          <div className="security-footer">
+          {/* <div className="security-footer">
             <Text className="security-text">
               Protected by enterprise-grade security and encryption
             </Text>
-          </div>
+          </div> */}
 
           {/* Terms and Privacy */}
-          <div className="terms-privacy">
+          {/* <div className="terms-privacy">
             <Text className="terms-text">
               <Text className="terms-link">Terms of Service</Text> • <Text className="terms-link">Privacy Policy</Text>
             </Text>
-          </div>
+          </div> */}
         </div>
       </Card>
     </div>

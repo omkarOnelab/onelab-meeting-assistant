@@ -52,7 +52,7 @@ interface Meeting {
 const getMeetingById = async (id: string): Promise<Meeting | null> => {
   try {
     const response = await axios.get<ApiResponse>(
-      `http://localhost:8000/api/transcripts/${id}/`
+      `${import.meta.env.VITE_PUBLIC_AUTH_URL}/transcripts/${id}/`
     );
     
     if (response.data.success && response.data.data) {
@@ -280,8 +280,8 @@ const MeetingDetail = () => {
                       
                       return actionItems.map((item: any, index: number) => (
                         <div key={index} className="bg-gradient-to-r from-gray-50 to-gray-100/50 p-4 rounded-xl border border-gray-200/30 hover:shadow-md transition-all duration-200">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
                               <p className="text-sm font-medium text-gray-900 mb-1">{item.item || item.task || "Action item"}</p>
                               <p className="text-xs text-gray-500">
                                 Assigned to: {item.owner || item.assignee || "Unassigned"}
@@ -291,19 +291,19 @@ const MeetingDetail = () => {
                                   Deadline: {item.deadline}
                                 </p>
                               )}
-                            </div>
-                            <Badge 
-                              variant="secondary" 
-                              className={`text-xs border-0 ${
+                        </div>
+                        <Badge 
+                          variant="secondary" 
+                          className={`text-xs border-0 ${
                                 item.priority === 'high' ? 'bg-red-100 text-red-700' :
                                 item.priority === 'medium' ? 'bg-orange-100 text-orange-700' :
                                 'bg-green-100 text-green-700'
                               }`}
                             >
                               {item.priority || 'medium'}
-                            </Badge>
-                          </div>
-                        </div>
+                        </Badge>
+                      </div>
+                    </div>
                       ));
                     } catch (error) {
                       console.error('Error parsing action items:', error);

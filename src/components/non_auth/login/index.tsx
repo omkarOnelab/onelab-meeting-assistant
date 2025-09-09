@@ -27,7 +27,7 @@ const Login = () => {
     onSuccess: async tokenResponse => {
       try {
         const response = await axios.post(
-          'http://127.0.0.1:8000/api/user/google-login/',
+          `${import.meta.env.VITE_PUBLIC_AUTH_URL}/user/google-login/`,
           { token: tokenResponse.access_token },
           { withCredentials: true }
         );
@@ -144,7 +144,7 @@ const Login = () => {
                   Continue with Google
                 </Button>
                 
-                <div className="relative">
+                {/* <div className="relative">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-gray-200"></div>
                   </div>
@@ -164,7 +164,7 @@ const Login = () => {
                     <span>•</span>
                     <span>Privacy Policy</span>
                   </div>
-                </div>
+                </div> */}
               </CardContent>
             </Card>
           </div>

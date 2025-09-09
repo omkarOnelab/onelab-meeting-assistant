@@ -77,8 +77,8 @@ const Meetings = () => {
       // Use different API endpoints based on admin status
       const userId = user?.id || '5'; // Use actual user ID or fallback
       const apiUrl = isAdmin 
-        ? `http://localhost:8000/api/transcripts/?page=${page}&pageSize=${pageSize}` // All meetings for admin
-        : `http://localhost:8000/api/transcripts/?userId=${userId}&page=${page}&pageSize=${pageSize}`; // User's meetings
+        ? `${import.meta.env.VITE_PUBLIC_AUTH_URL}/transcripts/?page=${page}&pageSize=${pageSize}` // All meetings for admin
+        : `${import.meta.env.VITE_PUBLIC_AUTH_URL}/transcripts/?userId=${userId}&page=${page}&pageSize=${pageSize}`; // User's meetings
       
       const response = await axios.get<ApiResponse>(apiUrl);
       
