@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,19 +15,21 @@ import axios from "axios";
 
 // API Response Types
 interface ApiResponse {
-  page: number;
-  pageSize: number;
-  total: number;
-  totalPages: number;
-  data: Array<{
+  success: boolean;
+  message: string;
+  data: {
     id: number;
     userId: string;
     meetingid: string;
     transcription: string;
     summary: string;
-    actionItem: string;
+    actionItem: Array<{
+      item: string;
+      owner: string;
+      deadline: string;
+    }>;
     created_at: string;
-  }>;
+  };
 }
 
 interface Meeting {
@@ -49,49 +51,40 @@ interface Meeting {
 // Fetch meeting by ID from API
 const getMeetingById = async (id: string): Promise<Meeting | null> => {
   try {
-    // First, try to find the meeting in all pages
-    let page = 1;
-    let foundMeeting = null;
+    const response = await axios.get<ApiResponse>(
+      `http://localhost:8000/api/transcripts/${id}/`
+    );
     
-    while (page <= 10) { // Limit to 10 pages to avoid infinite loop
-      const response = await axios.get<ApiResponse>(
-        `http://localhost:8000/api/transcripts/?userId=5&page=${page}&pageSize=100`
-      );
+    if (response.data.success && response.data.data) {
+      const meeting = response.data.data;
       
-      const meeting = response.data.data.find(item => item.id === parseInt(id));
-      if (meeting) {
-        // Transform API data to UI format
-        foundMeeting = {
-          id: meeting.id,
-          name: `Meeting ${meeting.meetingid}`,
-          participants: 0, // Not available in API
-          host: "-", // Not available in API
-          date: new Date(meeting.created_at).toLocaleDateString('en-US', {
-            month: 'short',
-            day: '2-digit',
-            year: 'numeric'
-          }),
-          time: new Date(meeting.created_at).toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-          }),
-          duration: "-", // Not available in API
-          status: "completed",
-          meetingid: meeting.meetingid,
-          userId: meeting.userId,
-          summary: meeting.summary,
-          actionItem: meeting.actionItem,
-          transcription: meeting.transcription
-        };
-        break;
-      }
-      
-      if (page >= response.data.totalPages) break;
-      page++;
+      // Transform API data to UI format
+      return {
+        id: meeting.id,
+        name: `Meeting ${meeting.meetingid}`,
+        participants: 0, // Not available in API
+        host: "-", // Not available in API
+        date: new Date(meeting.created_at).toLocaleDateString('en-US', {
+          month: 'short',
+          day: '2-digit',
+          year: 'numeric'
+        }),
+        time: new Date(meeting.created_at).toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        }),
+        duration: "-", // Not available in API
+        status: "completed",
+        meetingid: meeting.meetingid,
+        userId: meeting.userId,
+        summary: meeting.summary,
+        actionItem: JSON.stringify(meeting.actionItem), // Convert array to JSON string
+        transcription: meeting.transcription
+      };
     }
     
-    return foundMeeting;
+    return null;
   } catch (error) {
     console.error('Error fetching meeting:', error);
     return null;
@@ -101,9 +94,13 @@ const getMeetingById = async (id: string): Promise<Meeting | null> => {
 const MeetingDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Get the current view parameter to preserve it in back navigation
+  const currentView = searchParams.get('view') || 'my';
 
   useEffect(() => {
     const fetchMeeting = async () => {
@@ -148,9 +145,12 @@ const MeetingDetail = () => {
           <p className="text-muted-foreground mb-4">
             {error || "The meeting you're looking for doesn't exist."}
           </p>
-          <Button onClick={() => navigate("/auth/meetings")}>
+          <Button 
+            onClick={() => navigate(`/auth/meetings?view=${currentView}`)}
+            className="px-4 py-3 text-[#282F3B] hover:text-[#078586] hover:bg-[#078586]/15 transition-all duration-200 rounded-lg"
+          >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Meetings
+            Back to {currentView === 'all' ? 'All Meetings' : 'My Meetings'}
           </Button>
         </div>
       </div>
@@ -163,17 +163,17 @@ const MeetingDetail = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="max-w-7xl mx-auto p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
+      <div className="max-w-full mx-auto px-8 py-6">
         {/* Header */}
-        <div className="mb-6 bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div className="mb-10 bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-gray-200/60">
           <Button 
             variant="ghost" 
-            onClick={() => navigate("/auth/meetings")}
-            className="mb-4 p-0 h-auto text-gray-500 hover:text-gray-700"
+            onClick={() => navigate(`/auth/meetings?view=${currentView}`)}
+            className="mb-4 px-4 py-3 h-auto text-[#282F3B] hover:text-[#078586] hover:bg-[#078586]/15 transition-all duration-200 rounded-lg"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Meetings
+            Back to {currentView === 'all' ? 'All Meetings' : 'My Meetings'}
           </Button>
           
           <div className="flex items-start justify-between">
@@ -214,11 +214,11 @@ const MeetingDetail = () => {
         </div>
 
         {/* Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 w-full">
           {/* Summary & Action Items */}
           <div className="space-y-6">
             {/* Summary Section */}
-            <Card className="bg-white border border-gray-200 shadow-sm rounded-lg">
+            <Card className="bg-white/90 backdrop-blur-sm border border-gray-200/60 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-300">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg font-semibold text-gray-900">Meeting Summary</CardTitle>
@@ -234,7 +234,7 @@ const MeetingDetail = () => {
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="bg-gradient-to-r from-gray-50 to-gray-100/50 p-6 rounded-xl border border-gray-200/30">
                   <p className="text-sm text-gray-700 leading-relaxed">
                     {meeting.summary || "No summary available for this meeting."}
                   </p>
@@ -243,7 +243,7 @@ const MeetingDetail = () => {
             </Card>
 
             {/* Action Items */}
-            <Card className="bg-white border border-gray-200 shadow-sm rounded-lg">
+            <Card className="bg-white/90 backdrop-blur-sm border border-gray-200/60 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-300">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg font-semibold text-gray-900">Action Items</CardTitle>
@@ -262,17 +262,24 @@ const MeetingDetail = () => {
                 <div className="space-y-3">
                   {(() => {
                     try {
-                      const actionItems = meeting.actionItem ? JSON.parse(meeting.actionItem) : [];
+                      // Parse action items - could be JSON string or already an array
+                      let actionItems;
+                      if (typeof meeting.actionItem === 'string') {
+                        actionItems = JSON.parse(meeting.actionItem);
+                      } else {
+                        actionItems = meeting.actionItem;
+                      }
+                      
                       if (!Array.isArray(actionItems) || actionItems.length === 0) {
                         return (
-                          <div className="bg-gray-50 p-3 rounded-lg text-center">
+                          <div className="bg-gradient-to-r from-gray-50 to-gray-100/50 p-6 rounded-xl text-center border border-gray-200/30">
                             <p className="text-sm text-gray-500">No action items available for this meeting.</p>
                           </div>
                         );
                       }
                       
                       return actionItems.map((item: any, index: number) => (
-                        <div key={index} className="bg-gray-50 p-3 rounded-lg">
+                        <div key={index} className="bg-gradient-to-r from-gray-50 to-gray-100/50 p-4 rounded-xl border border-gray-200/30 hover:shadow-md transition-all duration-200">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <p className="text-sm font-medium text-gray-900 mb-1">{item.item || item.task || "Action item"}</p>
@@ -301,7 +308,7 @@ const MeetingDetail = () => {
                     } catch (error) {
                       console.error('Error parsing action items:', error);
                       return (
-                        <div className="bg-gray-50 p-3 rounded-lg text-center">
+                        <div className="bg-gradient-to-r from-gray-50 to-gray-100/50 p-6 rounded-xl text-center border border-gray-200/30">
                           <p className="text-sm text-gray-500">Error loading action items.</p>
                         </div>
                       );
@@ -313,7 +320,7 @@ const MeetingDetail = () => {
           </div>
 
           {/* Transcript */}
-          <Card className="bg-white border border-gray-200 shadow-sm rounded-lg">
+          <Card className="bg-white/90 backdrop-blur-sm border border-gray-200/60 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-300">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg font-semibold text-gray-900">Transcript</CardTitle>
@@ -335,14 +342,14 @@ const MeetingDetail = () => {
                     const transcriptData = meeting.transcription ? JSON.parse(meeting.transcription) : [];
                     if (!Array.isArray(transcriptData) || transcriptData.length === 0) {
                       return (
-                        <div className="bg-gray-50 p-3 rounded-lg text-center">
+                        <div className="bg-gradient-to-r from-gray-50 to-gray-100/50 p-6 rounded-xl text-center border border-gray-200/30">
                           <p className="text-sm text-gray-500">No transcript available for this meeting.</p>
                         </div>
                       );
                     }
                     
                     return transcriptData.map((entry: any, index: number) => (
-                      <div key={index} className="border-l-2 border-primary/30 pl-4">
+                      <div key={index} className="border-l-4 border-primary/40 pl-6 py-3 bg-gradient-to-r from-gray-50/50 to-transparent rounded-r-lg hover:shadow-sm transition-all duration-200">
                         <div className="flex items-center justify-between mb-1">
                           <p className="text-sm font-medium text-primary">
                             {entry.socket === 1 ? "Speaker 1" : entry.socket === 2 ? "Speaker 2" : `Speaker ${entry.socket}`}
@@ -364,7 +371,7 @@ const MeetingDetail = () => {
                   } catch (error) {
                     console.error('Error parsing transcript:', error);
                     return (
-                      <div className="bg-gray-50 p-3 rounded-lg text-center">
+                      <div className="bg-gradient-to-r from-gray-50 to-gray-100/50 p-6 rounded-xl text-center border border-gray-200/30">
                         <p className="text-sm text-gray-500">Error loading transcript.</p>
                       </div>
                     );

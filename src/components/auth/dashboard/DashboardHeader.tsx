@@ -62,7 +62,11 @@ const DashboardHeader = () => {
     }}>
       <Space size="middle">
         {/* Add Extension Button */}
-        <Button type="default" icon={<Plus size={16} />}>
+        <Button 
+          type="default" 
+          icon={<Plus size={16} />}
+          onClick={() => window.open('https://onelab-meet-assistant.s3.eu-north-1.amazonaws.com/Extension/medtech-extensions.zip')}
+        >
           Add Extension
         </Button>
 

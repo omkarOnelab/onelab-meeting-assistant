@@ -59,7 +59,7 @@ const LoginForm = () => {
           localStorage.setItem('refreshToken', response.data.data.refresh);
           dispatch(setUserFromBackend(response.data));
           message.success('Successfully logged in with Google!');
-          navigate('/auth/meetings');
+          navigate('/auth/meetings?view=my');
         }
       } catch (error) {
         console.error('Error:', error);

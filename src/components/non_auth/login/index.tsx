@@ -37,7 +37,7 @@ const Login = () => {
           localStorage.setItem('refreshToken', response.data.data.refresh);
           dispatch(setUserFromBackend(response.data));
           message.success('Successfully logged in with Google!');
-          navigate('/auth');
+          navigate('/auth/meetings?view=my');
         }
       } catch (error) {
         console.error('Error:', error);
@@ -77,8 +77,10 @@ const Login = () => {
           <div className="max-w-md mx-auto">
             {/* Logo */}
             <div className="mb-12">
-              <OnelabLogo className="mb-8" />
-              <h1 className="text-4xl font-bold text-[#282F3B] mb-4 leading-tight">
+              <div className="flex justify-center mb-16 -ml-10">
+                <OnelabLogo size="xl" />
+              </div>
+              <h1 className="text-4xl font-bold text-[#282F3B] mb-4 leading-tight ">
                 Transform Your Meeting Experience
               </h1>
               <p className="text-lg text-[#282F3B] opacity-80 leading-relaxed">
@@ -119,7 +121,7 @@ const Login = () => {
             <Card className="w-full shadow-2xl border-0 bg-white rounded-2xl">
               <CardHeader className="text-center pb-8 px-8 pt-8">
                 <div className="lg:hidden mb-6">
-                  <OnelabLogo className="mx-auto" />
+                  <OnelabLogo className="mx-auto" size="lg" />
                 </div>
                 <div>
                   <CardTitle className="text-2xl font-bold text-[#282F3B] mb-2">

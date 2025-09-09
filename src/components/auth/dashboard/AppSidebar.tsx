@@ -1,4 +1,4 @@
-import { Home, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -11,28 +11,38 @@ const AppSidebar = () => {
   const location = useLocation();
   const { user } = useSelector((state: RootState) => state.auth);
 
-  // Get user display name and email
-  const userName = user ? `${user.first_name} ${user.last_name}`.trim() : 'User';
-  const userEmail = user?.email || 'user@example.com';
-  const userInitials = user ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() : 'U';
+  // Get user display name and email (commented out user profile section)
+  // const userName = user ? `${user.first_name} ${user.last_name}`.trim() : 'User';
+  // const userEmail = user?.email || 'user@example.com';
+  // const userInitials = user ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() : 'U';
+  const isAdmin = user?.is_admin;
 
   const mainNavigation = [
     // { name: "Dashboard", href: "/dashboard", icon: Home },
-    { name: "Meetings", href: "/auth/meetings", icon: Calendar },
+    { name: "All Meetings", href: "/auth/meetings?view=all", icon: Users },
+    { name: "My Meetings", href: "/auth/meetings?view=my", icon: Calendar },
   ];
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (href: string) => {
+    const [path, query] = href.split('?');
+    if (query) {
+      const urlParams = new URLSearchParams(query);
+      const currentParams = new URLSearchParams(location.search);
+      return location.pathname === path && urlParams.get('view') === currentParams.get('view');
+    }
+    return location.pathname === href;
+  };
 
   return (
     <div className={`${isCollapsed ? 'w-16' : 'w-64'} transition-all duration-300 bg-white border-r border-border flex flex-col shadow-sm`}>
       {/* Header with Logo */}
       <div className="h-16 flex items-center px-4 border-b border-border">
         {!isCollapsed && (
-          <OnelabLogo size="sm" />
+          <OnelabLogo size="lg" />
         )}
         {isCollapsed && (
           <div className="mx-auto">
-            <OnelabLogo size="sm" />
+            <OnelabLogo size="lg" />
           </div>
         )}
       </div>
@@ -52,6 +62,9 @@ const AppSidebar = () => {
       {/* Main Navigation */}
       <nav className="flex-1 px-3 space-y-1">
         {mainNavigation.map((item) => {
+          if (!isAdmin && item.name === "All Meetings") {
+            return null;
+          }
           const Icon = item.icon;
           const active = isActive(item.href);
           return (
@@ -75,7 +88,7 @@ const AppSidebar = () => {
       </nav>
 
       {/* User Profile */}
-      {!isCollapsed && (
+      {/* {!isCollapsed && (
         <div className="p-4 border-t border-border">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
@@ -87,7 +100,7 @@ const AppSidebar = () => {
             </div>
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 };
