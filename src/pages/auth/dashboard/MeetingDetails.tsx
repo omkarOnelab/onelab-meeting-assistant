@@ -98,6 +98,7 @@ const MeetingDetail = () => {
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   
   // Get the current view parameter to preserve it in back navigation
   const currentView = searchParams.get('view') || 'my';
@@ -157,13 +158,43 @@ const MeetingDetail = () => {
     );
   }
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    // You could add a toast notification here
+  const copyToClipboard = async (text: string, type: string = 'content') => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyFeedback(`${type} copied to clipboard!`);
+      setTimeout(() => setCopyFeedback(null), 2000);
+      console.log('Text copied to clipboard successfully');
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setCopyFeedback(`${type} copied to clipboard!`);
+        setTimeout(() => setCopyFeedback(null), 2000);
+        console.log('Text copied to clipboard using fallback method');
+      } catch (fallbackErr) {
+        console.error('Fallback copy failed: ', fallbackErr);
+        setCopyFeedback('Failed to copy to clipboard');
+        setTimeout(() => setCopyFeedback(null), 2000);
+      }
+      document.body.removeChild(textArea);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
+      {/* Copy Feedback */}
+      {copyFeedback && (
+        <div className="fixed top-4 right-4 z-50 bg-[#078586] text-white px-4 py-2 rounded-lg shadow-lg">
+          {copyFeedback}
+        </div>
+      )}
+      
       <div className="max-w-full mx-auto px-8 py-6">
         {/* Header */}
         <div className="mb-10 bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-gray-200/60">
@@ -199,9 +230,7 @@ const MeetingDetail = () => {
                   <span>{meeting.duration}</span>
                 </div>
               </div>
-              <Badge variant="secondary" className="mt-3 text-xs bg-green-100 text-green-700 border-0">
-                {meeting.status}
-              </Badge>
+              
             </div>
             
             {/* <div className="flex items-center space-x-3 flex-shrink-0">
@@ -225,7 +254,7 @@ const MeetingDetail = () => {
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => copyToClipboard(meeting.summary || "No summary available")}
+                    onClick={() => copyToClipboard(meeting.summary || "No summary available", "Summary")}
                     className="text-xs text-gray-500 hover:text-gray-700"
                   >
                     <Copy className="w-3 h-3 mr-1" />
@@ -250,7 +279,29 @@ const MeetingDetail = () => {
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => copyToClipboard(meeting.actionItem || "No action items available")}
+                    onClick={() => {
+                      try {
+                        let actionItems;
+                        if (typeof meeting.actionItem === 'string') {
+                          actionItems = JSON.parse(meeting.actionItem);
+                        } else {
+                          actionItems = meeting.actionItem;
+                        }
+                        
+                        if (!Array.isArray(actionItems) || actionItems.length === 0) {
+                          copyToClipboard("No action items available", "Action items");
+                          return;
+                        }
+                        
+                        const formattedActionItems = actionItems.map((item: any, index: number) => 
+                          `${index + 1}. ${item.owner || item.assignee || "User"}: ${item.item || item.task || "Action item"}`
+                        ).join('\n');
+                        
+                        copyToClipboard(formattedActionItems, "Action items");
+                      } catch (error) {
+                        copyToClipboard("Error formatting action items", "Action items");
+                      }
+                    }}
                     className="text-xs text-gray-500 hover:text-gray-700"
                   >
                     <Copy className="w-3 h-3 mr-1" />
@@ -279,38 +330,27 @@ const MeetingDetail = () => {
                       }
                       
                       return actionItems.map((item: any, index: number) => (
+                        console.log("item",item),
                         <div key={index} className="bg-gradient-to-r from-gray-50 to-gray-100/50 p-4 rounded-xl border border-gray-200/30 hover:shadow-md transition-all duration-200">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                              <p className="text-sm font-medium text-gray-900 mb-1">{item.item || item.task || "Action item"}</p>
-                              <p className="text-xs text-gray-500">
-                                Assigned to: {item.owner || item.assignee || "Unassigned"}
+                              <p className="text-sm font-medium text-gray-900 mb-1">{item.owner || item.assignee || "User"} :</p>
+                              <p className="text-xs text-gray-500 flex items-start">
+                                <span className="text-[#078586] mr-2 mt-0.5">•</span>
+                                {item.item || item.task || "Action item"}
                               </p>
-                              {item.deadline && (
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Deadline: {item.deadline}
-                                </p>
-                              )}
+                            
+                            </div>
+                            
+                          </div>
                         </div>
-                        <Badge 
-                          variant="secondary" 
-                          className={`text-xs border-0 ${
-                                item.priority === 'high' ? 'bg-red-100 text-red-700' :
-                                item.priority === 'medium' ? 'bg-orange-100 text-orange-700' :
-                                'bg-green-100 text-green-700'
-                              }`}
-                            >
-                              {item.priority || 'medium'}
-                        </Badge>
-                      </div>
-                    </div>
                       ));
                     } catch (error) {
                       console.error('Error parsing action items:', error);
                       return (
                         <div className="bg-gradient-to-r from-gray-50 to-gray-100/50 p-6 rounded-xl text-center border border-gray-200/30">
                           <p className="text-sm text-gray-500">Error loading action items.</p>
-                        </div>
+                      </div>
                       );
                     }
                   })()}
@@ -320,14 +360,32 @@ const MeetingDetail = () => {
           </div>
 
           {/* Transcript */}
-          <Card className="bg-white/90 backdrop-blur-sm border border-gray-200/60 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-300">
+          <Card className="bg-white/90 backdrop-blur-sm border border-gray-200/60 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-300 flex flex-col">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg font-semibold text-gray-900">Transcript</CardTitle>
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={() => copyToClipboard(meeting.transcription || "No transcript available")}
+                  onClick={() => {
+                    try {
+                      const transcriptData = meeting.transcription ? JSON.parse(meeting.transcription) : [];
+                      if (!Array.isArray(transcriptData) || transcriptData.length === 0) {
+                        copyToClipboard("No transcript available", "Transcript");
+                        return;
+                      }
+                      
+                      const formattedTranscript = transcriptData.map((entry: any, index: number) => {
+                        const speaker = entry.speaker || (entry.socket === 1 ? "Speaker 1" : entry.socket === 2 ? "Speaker 2" : `Speaker ${entry.socket}`);
+                        const timestamp = entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString() : `${Math.floor(index * 0.5)}:${String(index * 30 % 60).padStart(2, '0')}`;
+                        return `[${timestamp}] ${speaker}: ${entry.text}`;
+                      }).join('\n\n');
+                      
+                      copyToClipboard(formattedTranscript, "Transcript");
+                    } catch (error) {
+                      copyToClipboard("Error formatting transcript", "Transcript");
+                    }
+                  }}
                   className="text-xs text-gray-500 hover:text-gray-700"
                 >
                   <Copy className="w-3 h-3 mr-1" />
@@ -335,8 +393,8 @@ const MeetingDetail = () => {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="pt-0">
-              <div className="space-y-4 max-h-96 overflow-y-auto">
+            <CardContent className="pt-0 flex-1">
+              <div className="space-y-4 min-h-96 max-h-[600px] overflow-y-auto">
                 {(() => {
                   try {
                     const transcriptData = meeting.transcription ? JSON.parse(meeting.transcription) : [];
@@ -352,7 +410,7 @@ const MeetingDetail = () => {
                       <div key={index} className="border-l-4 border-primary/40 pl-6 py-3 bg-gradient-to-r from-gray-50/50 to-transparent rounded-r-lg hover:shadow-sm transition-all duration-200">
                         <div className="flex items-center justify-between mb-1">
                           <p className="text-sm font-medium text-primary">
-                            {entry.socket === 1 ? "Speaker 1" : entry.socket === 2 ? "Speaker 2" : `Speaker ${entry.socket}`}
+                            {entry.speaker || (entry.socket === 1 ? "Speaker 1" : entry.socket === 2 ? "Speaker 2" : `Speaker ${entry.socket}`)}
                           </p>
                           <span className="text-xs text-gray-500">
                             {entry.timestamp || `${Math.floor(index * 0.5)}:${String(index * 30 % 60).padStart(2, '0')}`}

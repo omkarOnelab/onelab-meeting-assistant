@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { 
   Search, 
   Calendar, 
@@ -159,24 +158,15 @@ const Meetings = () => {
                 {totalMeetings} meetings found
               </p>
             </div>
-            {/* <div className="flex items-center space-x-3">
-              <Button variant="outline" size="sm" className="border-border">
-                <Download className="w-4 h-4 mr-2" />
-                Export
-              </Button>
-              <Button variant="outline" size="sm" className="border-border">
-                <Filter className="w-4 h-4 mr-2" />
-                Filters
-              </Button>
-            </div> */}
+            
           </div>
           
           {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#078586] w-5 h-5" />
+          <div className="relative w-80 max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#078586] w-4 h-4 z-10" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }} />
             <Input
-              placeholder="Search meetings by name or host..."
-              className="pl-12 pr-4 py-3 bg-white/80 backdrop-blur-sm border-2 border-gray-200/60 rounded-xl shadow-lg focus:border-[#078586] focus:ring-2 focus:ring-[#078586]/20 transition-all duration-200"
+              placeholder="Search meetings..."
+              className="pl-10 pr-4 py-2 bg-white/90 backdrop-blur-sm border-2 border-gray-200/60 rounded-lg shadow-md focus:border-[#078586] focus:ring-2 focus:ring-[#078586]/20 transition-all duration-200 text-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -225,11 +215,7 @@ const Meetings = () => {
                           <h3 className="font-semibold text-[#282F3B] text-lg leading-tight mb-3">
                             {meeting.name}
                           </h3>
-                          <Badge variant="secondary" className="text-xs bg-[#078586]/10 text-[#078586] border-0 px-3 py-1 rounded-full font-medium">
-                            {meeting.status}
-                          </Badge>
                         </div>
-                        <ArrowRight className="w-5 h-5 text-[#078586] flex-shrink-0 ml-3" />
                       </div>
                       
                       <div className="space-y-3 text-sm">
