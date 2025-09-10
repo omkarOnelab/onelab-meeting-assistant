@@ -21,7 +21,7 @@ const DashboardHeader = () => {
 
   // Get user display name and email
   const userName = user ? `${user.first_name} ${user.last_name}`.trim() : 'User';
-  const userEmail = user?.email || 'user@example.com';
+  const userEmail = user?.email || 'user@ .com';
   const userInitials = user ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() : 'U';
 
   const userMenuItems: MenuProps['items'] = [

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Chrome, Shield, Users, Zap } from "lucide-react";
@@ -13,6 +13,7 @@ import OnelabLogo from "../../shared/OnelabLogo";
 const Login = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   // Clear any existing authentication state on component mount
   React.useEffect(() => {
@@ -25,12 +26,25 @@ const Login = () => {
 
   const loginWithGoogle = useGoogleLogin({
     onSuccess: async tokenResponse => {
+      setIsGoogleLoading(true);
+      const loadingMessage = message.loading('Authenticating with Google...', 0);
+      
       try {
-        const response = await axios.post(
-          'http://127.0.0.1:8000/api/user/google-login/',
+        // Create axios instance with timeout
+        const apiClient = axios.create({
+          timeout: 15000, // 15 second timeout
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        const response = await apiClient.post(
+          `${import.meta.env.VITE_PUBLIC_AUTH_URL}/user/google-login/`,
           { token: tokenResponse.access_token },
           { withCredentials: true }
         );
+        
+        loadingMessage(); // Hide loading message
         
         if (response?.data?.success && response?.data?.data) {
           localStorage.setItem('token', response.data.data.access);
@@ -38,15 +52,32 @@ const Login = () => {
           dispatch(setUserFromBackend(response.data));
           message.success('Successfully logged in with Google!');
           navigate('/auth/meetings?view=my');
+        } else {
+          message.error('Invalid response from server');
         }
-      } catch (error) {
-        console.error('Error:', error);
-        message.error('Google login failed');
+      } catch (error: any) {
+        loadingMessage(); // Hide loading message
+        console.error('Google login error:', error);
+        
+        if (error.code === 'ECONNABORTED') {
+          message.error('Login request timed out. Please try again.');
+        } else if (error.response?.status === 500) {
+          message.error('Server error. Please try again later.');
+        } else if (error.response?.status === 401) {
+          message.error('Invalid Google token. Please try again.');
+        } else if (error.response?.data?.message) {
+          message.error(error.response.data.message);
+        } else {
+          message.error('Google login failed. Please try again.');
+        }
+      } finally {
+        setIsGoogleLoading(false);
       }
     },
     onError: error => {
-      console.error('Login Failed:', error);
-      message.error('Google login failed');
+      console.error('Google OAuth error:', error);
+      message.error('Google authentication failed. Please try again.');
+      setIsGoogleLoading(false);
     },
   });
 
@@ -138,10 +169,11 @@ const Login = () => {
                   type="button"
                   onClick={() => loginWithGoogle()}
                   size="lg"
-                  className="w-full bg-white border border-gray-200 text-[#282F3B] hover:bg-gray-50 shadow-sm transition-all duration-200 hover:shadow-md h-12 rounded-lg"
+                  disabled={isGoogleLoading}
+                  className="w-full bg-white border border-gray-200 text-[#282F3B] hover:bg-gray-50 shadow-sm transition-all duration-200 hover:shadow-md h-12 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Chrome className="w-5 h-5 mr-3" />
-                  Continue with Google
+                  {isGoogleLoading ? 'Authenticating...' : 'Continue with Google'}
                 </Button>
                 
                 <div className="relative">
