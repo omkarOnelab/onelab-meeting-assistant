@@ -13,6 +13,24 @@ import {
 } from "lucide-react";
 import axios from "axios";
 
+// Function to convert timestamp to IST
+function convertToIST(timestampMs: number): string {
+  // Create Date object from the given timestamp (milliseconds)
+  const date = new Date(timestampMs);
+  // Options for IST formatting
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  };
+  // Format into IST
+  return new Intl.DateTimeFormat("en-IN", options).format(date);
+}
+
 // API Response Types
 interface ApiResponse {
   success: boolean;
@@ -100,8 +118,9 @@ const MeetingDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   
-  // Get the current view parameter to preserve it in back navigation
+  // Get the current view and page parameters to preserve them in back navigation
   const currentView = searchParams.get('view') || 'my';
+  const currentPage = searchParams.get('page') || '1';
 
   useEffect(() => {
     const fetchMeeting = async () => {
@@ -129,10 +148,10 @@ const MeetingDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading meeting details...</p>
+      <div className="flex items-center justify-center p-12">
+        <div className="text-center bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-gray-200/60">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#078586]/20 border-t-[#078586] mx-auto mb-6"></div>
+          <p className="text-[#282F3B] text-lg font-medium">Loading meeting details...</p>
         </div>
       </div>
     );
@@ -140,15 +159,15 @@ const MeetingDetail = () => {
 
   if (error || !meeting) {
     return (
-      <div className="min-h-screen bg-surface flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-semibold text-foreground mb-2">Meeting Not Found</h2>
-          <p className="text-muted-foreground mb-4">
+      <div className="flex items-center justify-center p-12">
+        <div className="text-center bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-gray-200/60">
+          <h2 className="text-2xl font-semibold text-[#282F3B] mb-2">Meeting Not Found</h2>
+          <p className="text-[#282F3B]/70 mb-6 text-lg">
             {error || "The meeting you're looking for doesn't exist."}
           </p>
           <Button 
-            onClick={() => navigate(`/auth/meetings?view=${currentView}`)}
-            className="px-4 py-3 text-[#282F3B] hover:text-[#078586] hover:bg-[#078586]/15 transition-all duration-200 rounded-lg"
+            onClick={() => navigate(`/auth/meetings?view=${currentView}&page=${currentPage}`)}
+            className="bg-[#078586] hover:bg-[#078586]/90 text-white px-6 py-3 rounded-lg transition-all duration-200"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to {currentView === 'all' ? 'All Meetings' : 'My Meetings'}
@@ -200,7 +219,7 @@ const MeetingDetail = () => {
         <div className="mb-10 bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-gray-200/60">
           <Button 
             variant="ghost" 
-            onClick={() => navigate(`/auth/meetings?view=${currentView}`)}
+            onClick={() => navigate(`/auth/meetings?view=${currentView}&page=${currentPage}`)}
             className="mb-4 px-4 py-3 h-auto text-[#282F3B] hover:text-[#078586] hover:bg-[#078586]/15 transition-all duration-200 rounded-lg"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -247,8 +266,8 @@ const MeetingDetail = () => {
           {/* Summary & Action Items */}
           <div className="space-y-6">
             {/* Summary Section */}
-            <Card className="bg-white/90 backdrop-blur-sm border border-gray-200/60 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-300">
-              <CardHeader className="pb-3">
+            <Card className="bg-white/90 backdrop-blur-sm border border-gray-200/60 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-300 h-72 flex flex-col">
+              <CardHeader className="pb-3 flex-shrink-0">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg font-semibold text-gray-900">Meeting Summary</CardTitle>
                   <Button 
@@ -262,8 +281,8 @@ const MeetingDetail = () => {
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="pt-0">
-                <div className="bg-gradient-to-r from-gray-50 to-gray-100/50 p-6 rounded-xl border border-gray-200/30">
+              <CardContent className="pt-0 flex-1 flex flex-col min-h-0">
+                <div className="bg-gradient-to-r from-gray-50 to-gray-100/50 p-4 rounded-xl border border-gray-200/30 flex-1 overflow-y-auto">
                   <p className="text-sm text-gray-700 leading-relaxed">
                     {meeting.summary || "No summary available for this meeting."}
                   </p>
@@ -272,8 +291,8 @@ const MeetingDetail = () => {
             </Card>
 
             {/* Action Items */}
-            <Card className="bg-white/90 backdrop-blur-sm border border-gray-200/60 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-300">
-              <CardHeader className="pb-3">
+            <Card className="bg-white/90 backdrop-blur-sm border border-gray-200/60 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-300 h-72 flex flex-col">
+              <CardHeader className="pb-3 flex-shrink-0">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg font-semibold text-gray-900">Action Items</CardTitle>
                   <Button 
@@ -309,8 +328,8 @@ const MeetingDetail = () => {
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-3">
+              <CardContent className="pt-0 flex-1 flex flex-col min-h-0">
+                <div className="space-y-3 flex-1 overflow-y-auto pr-2">
                   {(() => {
                     try {
                       // Parse action items - could be JSON string or already an array
@@ -360,8 +379,8 @@ const MeetingDetail = () => {
           </div>
 
           {/* Transcript */}
-          <Card className="bg-white/90 backdrop-blur-sm border border-gray-200/60 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-300 flex flex-col">
-            <CardHeader className="pb-3">
+          <Card className="bg-white/90 backdrop-blur-sm border border-gray-200/60 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-300 flex flex-col h-[600px]">
+            <CardHeader className="pb-3 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg font-semibold text-gray-900">Transcript</CardTitle>
                 <Button 
@@ -377,7 +396,7 @@ const MeetingDetail = () => {
                       
                       const formattedTranscript = transcriptData.map((entry: any, index: number) => {
                         const speaker = entry.speaker || (entry.socket === 1 ? "Speaker 1" : entry.socket === 2 ? "Speaker 2" : `Speaker ${entry.socket}`);
-                        const timestamp = entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString() : `${Math.floor(index * 0.5)}:${String(index * 30 % 60).padStart(2, '0')}`;
+                        const timestamp = entry.timestamp ? convertToIST(entry.timestamp) : `${Math.floor(index * 0.5)}:${String(index * 30 % 60).padStart(2, '0')}`;
                         return `[${timestamp}] ${speaker}: ${entry.text}`;
                       }).join('\n\n');
                       
@@ -393,8 +412,8 @@ const MeetingDetail = () => {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="pt-0 flex-1">
-              <div className="space-y-4 min-h-96 max-h-[600px] overflow-y-auto">
+            <CardContent className="pt-0 flex-1 flex flex-col min-h-0">
+              <div className="space-y-4 flex-1 overflow-y-auto pr-2">
                 {(() => {
                   try {
                     const transcriptData = meeting.transcription ? JSON.parse(meeting.transcription) : [];
@@ -413,7 +432,7 @@ const MeetingDetail = () => {
                             {entry.speaker || (entry.socket === 1 ? "Speaker 1" : entry.socket === 2 ? "Speaker 2" : `Speaker ${entry.socket}`)}
                           </p>
                           <span className="text-xs text-gray-500">
-                            {entry.timestamp || `${Math.floor(index * 0.5)}:${String(index * 30 % 60).padStart(2, '0')}`}
+                            {entry.timestamp ? convertToIST(entry.timestamp) : `${Math.floor(index * 0.5)}:${String(index * 30 % 60).padStart(2, '0')}`}
                           </span>
                         </div>
                         <p className="text-sm text-gray-700 leading-relaxed">{entry.text}</p>
