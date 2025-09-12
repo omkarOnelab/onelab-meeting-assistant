@@ -49,6 +49,7 @@ interface Meeting {
 
 const Meetings = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [appliedSearchTerm, setAppliedSearchTerm] = useState("");
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,9 +77,10 @@ const Meetings = () => {
       
       // Use different API endpoints based on admin status
       const userId = user?.id || '5'; // Use actual user ID or fallback
+      const searchParam = appliedSearchTerm ? `&search=${encodeURIComponent(appliedSearchTerm)}` : '';
       const apiUrl = isAdmin 
-        ? `${import.meta.env.VITE_PUBLIC_AUTH_URL}/transcripts/?page=${page}&pageSize=${pageSize}` // All meetings for admin
-        : `${import.meta.env.VITE_PUBLIC_AUTH_URL}/transcripts/?userId=${userId}&page=${page}&pageSize=${pageSize}`; // User's meetings
+        ? `${import.meta.env.VITE_PUBLIC_AUTH_URL}/transcripts/?page=${page}&pageSize=${pageSize}${searchParam}` // All meetings for admin
+        : `${import.meta.env.VITE_PUBLIC_AUTH_URL}/transcripts/?userId=${userId}&page=${page}&pageSize=${pageSize}${searchParam}`; // User's meetings
       
       const response = await axios.get<ApiResponse>(apiUrl);
       
@@ -128,12 +130,10 @@ const Meetings = () => {
   useEffect(() => {
     setTotalMeetings(0);
     fetchMeetings(currentPage);
-  }, [currentPage, viewType]);
+  }, [currentPage, viewType, appliedSearchTerm]);
 
-  const filteredMeetings = meetings.filter(meeting =>
-    meeting.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    meeting.host.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Server-side filtering, so we use meetings directly
+  const filteredMeetings = meetings;
 
   const handleMeetingClick = (meetingId: number) => {
     navigate(`/auth/meetings/${meetingId}?view=${viewType}&page=${currentPage}`);
@@ -155,6 +155,17 @@ const Meetings = () => {
     }
   };
 
+  const handleApplySearch = () => {
+    setAppliedSearchTerm(searchTerm);
+    setCurrentPage(1); // Reset to first page when applying search
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+    setAppliedSearchTerm("");
+    setCurrentPage(1);
+  };
+
   return (
     <div className="flex-1 min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
       <div className="max-w-7xl mx-auto">
@@ -167,18 +178,45 @@ const Meetings = () => {
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
                 {totalMeetings} meetings found
+                {appliedSearchTerm && (
+                  <span className="ml-2 text-[#078586] font-medium">
+                    (filtered by "{appliedSearchTerm}")
+                  </span>
+                )}
               </p>
             </div>
             
             {/* Search */}
-            <div className="relative w-80 max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#078586] w-4 h-4 z-10" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }} />
-              <Input
-                placeholder="Search meetings..."
-                className="pl-10 pr-4 py-2 bg-white/90 backdrop-blur-sm border-2 border-gray-200/60 rounded-lg shadow-md focus:border-[#078586] focus:ring-2 focus:ring-[#078586]/20 transition-all duration-200 text-sm"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            <div className="flex items-center space-x-3">
+              <div className="relative w-80 max-w-sm">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#078586] w-4 h-4 z-10" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }} />
+                <Input
+                  placeholder="Search meetings..."
+                  className="pl-10 pr-4 py-2 bg-white/90 backdrop-blur-sm border-2 border-gray-200/60 rounded-lg shadow-md focus:border-[#078586] focus:ring-2 focus:ring-[#078586]/20 transition-all duration-200 text-sm"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleApplySearch();
+                    }
+                  }}
+                />
+              </div>
+              <Button
+                onClick={handleApplySearch}
+                className="bg-[#078586] hover:bg-[#078586]/90 text-white px-4 py-2 rounded-lg transition-all duration-200 text-sm"
+              >
+                Apply
+              </Button>
+              {appliedSearchTerm && (
+                <Button
+                  onClick={handleClearSearch}
+                  variant="outline"
+                  className="border-2 border-gray-200/60 hover:border-[#078586] hover:bg-[#078586]/10 text-[#282F3B] hover:text-[#078586] px-4 py-2 rounded-lg transition-all duration-200 text-sm"
+                >
+                  Clear
+                </Button>
+              )}
             </div>
           </div>
         </div>
