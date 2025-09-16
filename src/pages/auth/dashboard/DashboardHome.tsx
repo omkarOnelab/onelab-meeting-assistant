@@ -1,9 +1,24 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, ArrowUpRight, MessageSquare } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { useEffect } from "react";
+import { message } from "antd";
+import CalendarIntegration from "@/components/auth/dashboard/CalendarIntegration";
 
 const DashboardHome = () => {
+  const [searchParams] = useSearchParams();
+
+  // Check for calendar connection success
+  useEffect(() => {
+    if (searchParams.get('calendar_connected') === 'true') {
+      message.success('Google Calendar connected successfully!');
+      // Clean up the URL parameter
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+  }, [searchParams]);
+
   const stats = [
     {
       title: "Total Meetings",
@@ -24,23 +39,23 @@ const DashboardHome = () => {
   ];
 
   const recentMeetings = [
-    { 
+    {
       name: "Product Strategy Review Q1 2024",
-      participants: 8, 
+      participants: 8,
       time: "2 hours ago",
       status: "completed",
       duration: "1h 45m"
     },
-    { 
+    {
       name: "Weekly Team Standup",
-      participants: 12, 
+      participants: 12,
       time: "1 day ago",
       status: "completed",
       duration: "30m"
     },
-    { 
+    {
       name: "Client Presentation",
-      participants: 5, 
+      participants: 5,
       time: "2 days ago",
       status: "completed",
       duration: "2h 15m"
@@ -60,6 +75,11 @@ const DashboardHome = () => {
           </p>
         </div>
 
+        {/* Google Calendar Integration - Moved to Top */}
+        <div className="mb-8">
+          <CalendarIntegration />
+        </div>
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {stats.map((stat) => {
@@ -77,12 +97,10 @@ const DashboardHome = () => {
                 <CardContent>
                   <div className="text-2xl font-semibold text-foreground mb-1">{stat.value}</div>
                   <div className="flex items-center text-xs">
-                    <span className={`inline-flex items-center ${
-                      stat.trend === 'up' ? 'text-success' : 'text-warning'
-                    }`}>
-                      <ArrowUpRight className={`w-3 h-3 mr-1 ${
-                        stat.trend === 'down' ? 'rotate-90' : ''
-                      }`} />
+                    <span className={`inline-flex items-center ${stat.trend === 'up' ? 'text-success' : 'text-warning'
+                      }`}>
+                      <ArrowUpRight className={`w-3 h-3 mr-1 ${stat.trend === 'down' ? 'rotate-90' : ''
+                        }`} />
                       {stat.change}
                     </span>
                     <span className="text-muted-foreground ml-1">from last {stat.period.split(' ')[1]}</span>
@@ -102,7 +120,7 @@ const DashboardHome = () => {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg font-semibold text-foreground">Recent Meetings</CardTitle>
                   <Button variant="ghost" size="sm" asChild>
-                    <Link to="/dashboard/meetings" className="text-primary hover:text-primary/80">
+                    <Link to="/auth/meetings?view=my" className="text-primary hover:text-primary/80">
                       View all
                       <ArrowUpRight className="w-4 h-4 ml-1" />
                     </Link>

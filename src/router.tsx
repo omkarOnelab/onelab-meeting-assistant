@@ -4,6 +4,7 @@ import NonAuth from "./layouts/NonAuth";
 import Login from "./pages/non_auth/login";
 import ProtectedRoute from "./components/shared/ProtectedRoute";
 import Dashboard from "./pages/auth/dashboard/Dashboard";
+import DashboardHome from "./pages/auth/dashboard/DashboardHome";
 import Meetings from "./pages/auth/dashboard/Meetings";
 import MeetingDetail from "./pages/auth/dashboard/MeetingDetails";
 
@@ -22,11 +23,11 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "",
-            element: <Meetings />,
+            element: <DashboardHome />,
           },
           {
             path: "dashboard",
-            element: <Dashboard />,
+            element: <DashboardHome />,
           },
           {
             path: "meetings",

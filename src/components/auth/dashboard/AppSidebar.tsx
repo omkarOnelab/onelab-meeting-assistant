@@ -1,4 +1,4 @@
-import { Calendar, Users } from "lucide-react";
+import { Calendar, Users, Home } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../../redux/store';
@@ -11,7 +11,7 @@ const AppSidebar = () => {
   const isAdmin = user?.is_admin;
 
   const mainNavigation = [
-    // { name: "Dashboard", href: "/dashboard", icon: Home },
+    { name: "Dashboard", href: "/auth/dashboard", icon: Home },
     { name: "All Meetings", href: "/auth/meetings?view=all", icon: Users },
     { name: "My Meetings", href: "/auth/meetings?view=my", icon: Calendar },
   ];

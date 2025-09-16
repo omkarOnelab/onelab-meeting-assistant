@@ -37,7 +37,7 @@ export const useAuth = () => {
   const login = async (email: string, password: string) => {
     try {
       await dispatch(loginUser({ email, password })).unwrap();
-      navigate('/auth/meetings?view=my');
+      navigate('/auth/dashboard');
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message };
@@ -48,7 +48,7 @@ export const useAuth = () => {
   const loginWithGoogle = async (googleResponse: any) => {
     try {
       await dispatch(googleLogin(googleResponse)).unwrap();
-      navigate('/auth/meetings?view=my');
+      navigate('/auth/dashboard');
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message };

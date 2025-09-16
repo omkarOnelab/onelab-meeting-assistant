@@ -51,7 +51,7 @@ const Login = () => {
           localStorage.setItem('refreshToken', response.data.data.refresh);
           dispatch(setUserFromBackend(response.data));
           message.success('Successfully logged in with Google!');
-          navigate('/auth/meetings?view=my');
+          navigate('/auth/dashboard');
         } else {
           message.error('Invalid response from server');
         }
