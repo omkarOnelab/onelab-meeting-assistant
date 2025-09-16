@@ -5,9 +5,11 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useEffect } from "react";
 import { message } from "antd";
 import CalendarIntegration from "@/components/auth/dashboard/CalendarIntegration";
+import { useAuth } from "@/hooks/useAuth";
 
 const DashboardHome = () => {
   const [searchParams] = useSearchParams();
+  const { getUserFullName, user } = useAuth();
 
   // Check for calendar connection success
   useEffect(() => {
@@ -68,7 +70,7 @@ const DashboardHome = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-semibold text-foreground mb-2">
-            Welcome back, John
+            Welcome back, {getUserFullName() || user?.first_name || 'User'}
           </h1>
           <p className="text-muted-foreground">
             Here's what's happening with your meetings today.

@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { useCalendar } from '../../../hooks/useCalendar';
 import { message } from 'antd';
-import type { CalendarEvent } from '../../../types/calendar';
 
 const CalendarIntegration: React.FC = () => {
   const {
