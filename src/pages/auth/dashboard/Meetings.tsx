@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -56,7 +55,7 @@ const Meetings = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalMeetings, setTotalMeetings] = useState(0);
-  const pageSize = 6; // Show 5 cards per page
+  const pageSize = 10; // Show 10 entries per page
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
@@ -199,7 +198,7 @@ const Meetings = () => {
                     if (e.key === 'Enter') {
                       handleApplySearch();
                     }
-                  }}
+                  }}  
                 />
               </div>
               <Button
@@ -250,53 +249,96 @@ const Meetings = () => {
         {!loading && !error && (
           <>
             <div className="p-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredMeetings.map((meeting) => (
-                  <Card 
-                    key={meeting.id}
-                    className="cursor-pointer bg-white/90 backdrop-blur-sm border border-gray-200/60 shadow-xl rounded-2xl hover:shadow-2xl hover:border-[#078586]/30 transition-all duration-300 transform hover:-translate-y-1"
-                    onClick={() => handleMeetingClick(meeting.id)}
-                  >
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-[#282F3B] text-lg leading-tight mb-3">
-                            {meeting.name}
-                          </h3>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-3 text-sm">
-                        <div className="flex items-center text-[#282F3B]/70 bg-gradient-to-r from-gray-50 to-gray-100/50 p-3 rounded-lg">
-                          <Users className="w-4 h-4 mr-3 flex-shrink-0 text-[#078586]" />
-                          <span className="font-medium">{meeting.participants === 0 ? "-" : `${meeting.participants} participants`}</span>
-                        </div>
-                        <div className="flex items-center text-[#282F3B]/70 bg-gradient-to-r from-gray-50 to-gray-100/50 p-3 rounded-lg">
-                          <User className="w-4 h-4 mr-3 flex-shrink-0 text-[#078586]" />
-                          <span className="truncate font-medium">{meeting.host}</span>
-                        </div>
-                        <div className="flex items-center text-[#282F3B]/70 bg-gradient-to-r from-gray-50 to-gray-100/50 p-3 rounded-lg">
-                          <Calendar className="w-4 h-4 mr-3 flex-shrink-0 text-[#078586]" />
-                          <span className="font-medium">{meeting.date}</span>
-                        </div>
-                        <div className="flex items-center text-[#282F3B]/70 bg-gradient-to-r from-gray-50 to-gray-100/50 p-3 rounded-lg">
-                          <Clock className="w-4 h-4 mr-3 flex-shrink-0 text-[#078586]" />
-                          <span className="font-medium">{meeting.duration}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200/60">
-                        <span className="text-sm text-[#282F3B]/70 font-medium">
-                          {meeting.time}
-                        </span>
-                        <span className="text-sm text-[#078586] font-semibold flex items-center">
-                          View Details 
-                          <ArrowRight className="w-4 h-4 ml-1" />
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+              <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/60 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100/50 border-b border-gray-200/60">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Meeting</th>
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Host</th>
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Participants</th>
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Date</th>
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Time</th>
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Duration</th>
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Status</th>
+                        <th className="px-6 py-4 text-center text-sm font-semibold text-[#282F3B]">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200/60">
+                      {filteredMeetings.map((meeting) => (
+                        <tr 
+                          key={meeting.id}
+                          className="hover:bg-gray-50/50 transition-colors duration-200 cursor-pointer"
+                          onClick={() => handleMeetingClick(meeting.id)}
+                        >
+                          <td className="px-6 py-4">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-r from-[#078586]/10 to-[#078586]/5 rounded-lg flex items-center justify-center mr-4">
+                                <Calendar className="w-5 h-5 text-[#078586]" />
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium text-[#282F3B]">
+                                  {meeting.name}
+                                </div>
+                                <div className="text-xs text-[#282F3B]/60">
+                                  ID: {meeting.meetingid}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center">
+                              <User className="w-4 h-4 mr-2 text-[#078586]" />
+                              <span className="text-sm text-[#282F3B]/70">
+                                {meeting.host}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center">
+                              <Users className="w-4 h-4 mr-2 text-[#078586]" />
+                              <span className="text-sm text-[#282F3B]/70">
+                                {meeting.participants === 0 ? "-" : `${meeting.participants}`}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center">
+                              <Calendar className="w-4 h-4 mr-2 text-[#078586]" />
+                              <span className="text-sm text-[#282F3B]/70">
+                                {meeting.date}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center">
+                              <Clock className="w-4 h-4 mr-2 text-[#078586]" />
+                              <span className="text-sm text-[#282F3B]/70">
+                                {meeting.time}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-sm text-[#282F3B]/70">
+                              {meeting.duration}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              {meeting.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <button className="inline-flex items-center text-sm text-[#078586] hover:text-[#078586]/80 font-medium transition-colors duration-200">
+                              View Details
+                              <ArrowRight className="w-4 h-4 ml-1" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
