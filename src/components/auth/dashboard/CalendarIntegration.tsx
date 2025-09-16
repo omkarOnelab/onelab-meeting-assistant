@@ -58,14 +58,20 @@ const CalendarIntegration: React.FC = () => {
     try {
       setIsConnecting(true);
       await startAuthorization();
-      message.success('Please complete the authorization in the popup window');
+      message.success('Google Calendar connected successfully!');
 
-      // Check authorization status after a delay
-      setTimeout(() => {
-        checkAuthorization();
-      }, 2000);
+      // Refresh authorization status and events
+      await checkAuthorization();
+      await fetchMeetEvents();
     } catch (error: any) {
-      message.error(error.message || 'Failed to start calendar authorization');
+      console.error('Calendar authorization error:', error);
+      if (error.message.includes('Popup blocked')) {
+        message.error('Please allow popups for this site to connect Google Calendar');
+      } else if (error.message.includes('cancelled')) {
+        message.info('Calendar authorization was cancelled');
+      } else {
+        message.error(error.message || 'Failed to connect Google Calendar');
+      }
     } finally {
       setIsConnecting(false);
     }

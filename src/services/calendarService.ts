@@ -103,7 +103,7 @@ export const calendarService = {
       console.log('calendarService: Getting token status...');
       const token = localStorage.getItem('token');
       console.log('calendarService: JWT token exists:', !!token);
-      
+
       const response = await api.get('/user/auth/google/status/');
       console.log('calendarService: Token status response:', response.data);
 
@@ -200,12 +200,62 @@ export const calendarService = {
     }
   },
 
-  // Open calendar authorization in new window
+  // Open calendar authorization in popup window with proper communication
   async openCalendarAuthorization(): Promise<void> {
     try {
       const response = await this.startCalendarAuthorization();
       if (response.data.authorization_url) {
-        window.open(response.data.authorization_url, '_blank', 'width=600,height=600');
+        return new Promise((resolve, reject) => {
+          const popup = window.open(
+            response.data.authorization_url,
+            'googleCalendarAuth',
+            'width=600,height=600,scrollbars=yes,resizable=yes'
+          );
+
+          if (!popup) {
+            reject(new Error('Popup blocked. Please allow popups for this site.'));
+            return;
+          }
+
+          // Listen for messages from the popup
+          const messageListener = (event: MessageEvent) => {
+            // Check if the message is from the same origin
+            if (event.origin !== window.location.origin) {
+              return;
+            }
+
+            if (event.data.type === 'GOOGLE_CALENDAR_AUTH_SUCCESS') {
+              window.removeEventListener('message', messageListener);
+              popup.close();
+              resolve();
+            } else if (event.data.type === 'GOOGLE_CALENDAR_AUTH_ERROR') {
+              window.removeEventListener('message', messageListener);
+              popup.close();
+              reject(new Error(event.data.error || 'Authorization failed'));
+            }
+          };
+
+          window.addEventListener('message', messageListener);
+
+          // Check if popup is closed manually
+          const checkClosed = setInterval(() => {
+            if (popup.closed) {
+              clearInterval(checkClosed);
+              window.removeEventListener('message', messageListener);
+              reject(new Error('Authorization cancelled by user'));
+            }
+          }, 1000);
+
+          // Clean up after 10 minutes
+          setTimeout(() => {
+            if (!popup.closed) {
+              clearInterval(checkClosed);
+              window.removeEventListener('message', messageListener);
+              popup.close();
+              reject(new Error('Authorization timeout'));
+            }
+          }, 600000);
+        });
       } else {
         throw new Error('No authorization URL received');
       }
