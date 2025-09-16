@@ -13,6 +13,34 @@ import type {
   UpdateInsightRequest
 } from '../types/dashboard';
 
+// Dashboard Stats Types
+export interface DashboardStats {
+  stats: Array<{
+    title: string;
+    value: string;
+    change: string;
+    trend: 'up' | 'down' | 'stable';
+    icon: string;
+    period: string;
+  }>;
+  recent_meetings: Array<{
+    id: number;
+    name: string;
+    participants: number;
+    time: string;
+    status: string;
+    duration: string;
+    action_items: number;
+    created_at: string;
+  }>;
+  weekly_summary: {
+    meetings_completed: number;
+    total_hours: string;
+    action_items_created: number;
+    transcripts_processed: number;
+  };
+}
+
 // Base API configuration
 const API_BASE_URL = import.meta.env.VITE_PUBLIC_AUTH_URL || 'http://127.0.0.1:8000/api';
 const api = axios.create({
@@ -143,6 +171,53 @@ interface ApiResponse<T> {
 
 // Service Functions
 export const dashboardService = {
+  // Get dashboard statistics from backend
+  async getDashboardStats(): Promise<ApiResponse<DashboardStats>> {
+    try {
+      const response = await api.get('/dashboard/stats/');
+      
+      return {
+        success: true,
+        data: response.data.data,
+        message: 'Dashboard stats fetched successfully'
+      };
+    } catch (error: any) {
+      console.error('Dashboard stats error:', error);
+      // Fallback to mock data
+      return {
+        success: true,
+        data: {
+          stats: [
+            {
+              title: "Total Meetings",
+              value: "0",
+              change: "+0%",
+              trend: "stable",
+              icon: "Calendar",
+              period: "this month"
+            },
+            {
+              title: "Avg Duration",
+              value: "0 min",
+              change: "0%",
+              trend: "stable",
+              icon: "Clock",
+              period: "this month"
+            }
+          ],
+          recent_meetings: [],
+          weekly_summary: {
+            meetings_completed: 0,
+            total_hours: "0h",
+            action_items_created: 0,
+            transcripts_processed: 0
+          }
+        },
+        message: 'Using fallback data'
+      };
+    }
+  },
+
   // Get complete dashboard data
   async getDashboardData(): Promise<ApiResponse<DashboardData>> {
     try {
@@ -327,6 +402,7 @@ export const dashboardService = {
 
 // Export individual functions for convenience
 export const {
+  getDashboardStats,
   getDashboardData,
   getSummaryCards,
   getRecentMeetings,
