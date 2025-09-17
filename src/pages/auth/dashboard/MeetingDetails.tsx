@@ -42,7 +42,7 @@ interface ApiResponse {
     transcription: string;
     summary: string;
     actionItem: Array<{
-      item: string;
+      items: string[];
       owner: string;
       deadline: string;
     }>;
@@ -312,9 +312,11 @@ const MeetingDetail = () => {
                           return;
                         }
                         
-                        const formattedActionItems = actionItems.map((item: any, index: number) => 
-                          `${index + 1}. ${item.owner || item.assignee || "User"}: ${item.item || item.task || "Action item"}`
-                        ).join('\n');
+                        const formattedActionItems = actionItems.map((item: any, index: number) => {
+                          const items = item.items || item.item || item.task || ["Action item"];
+                          const itemsList = Array.isArray(items) ? items : [items];
+                          return `${index + 1}. ${item.owner || item.assignee || "User"}: ${itemsList.join(", ")}`;
+                        }).join('\n');
                         
                         copyToClipboard(formattedActionItems, "Action items");
                       } catch (error) {
@@ -348,22 +350,28 @@ const MeetingDetail = () => {
                         );
                       }
                       
-                      return actionItems.map((item: any, index: number) => (
-                        console.log("item",item),
-                        <div key={index} className="bg-gradient-to-r from-gray-50 to-gray-100/50 p-4 rounded-xl border border-gray-200/30 hover:shadow-md transition-all duration-200">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                              <p className="text-sm font-medium text-gray-900 mb-1">{item.owner || item.assignee || "User"} :</p>
-                              <p className="text-xs text-gray-500 flex items-start">
-                                <span className="text-[#078586] mr-2 mt-0.5">•</span>
-                                {item.item || item.task || "Action item"}
-                              </p>
-                            
+                      return actionItems.map((item: any, index: number) => {
+                        const items = item.items || item.item || item.task || ["Action item"];
+                        const itemsList = Array.isArray(items) ? items : [items];
+                        
+                        return (
+                          <div key={index} className="bg-gradient-to-r from-gray-50 to-gray-100/50 p-4 rounded-xl border border-gray-200/30 hover:shadow-md transition-all duration-200">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-900 mb-2">{item.owner || item.assignee || "User"}:</p>
+                                <div className="space-y-1">
+                                  {itemsList.map((actionItem: string, itemIndex: number) => (
+                                    <p key={itemIndex} className="text-xs text-gray-500 flex items-start">
+                                      <span className="text-[#078586] mr-2 mt-0.5">•</span>
+                                      {actionItem}
+                                    </p>
+                                  ))}
+                                </div>
+                              </div>
                             </div>
-                            
                           </div>
-                        </div>
-                      ));
+                        );
+                      });
                     } catch (error) {
                       console.error('Error parsing action items:', error);
                       return (
