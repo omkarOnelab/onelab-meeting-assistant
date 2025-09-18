@@ -200,6 +200,88 @@ export const calendarService = {
     }
   },
 
+  // 🆕 NEW: Sync calendar meetings to backend database
+  async syncCalendarMeetings(params?: {
+    days_ahead?: number;
+  }): Promise<ApiResponse<{ synced_count: number; meetings: any[] }>> {
+    try {
+      const userData = localStorage.getItem('user');
+      const user = userData ? JSON.parse(userData) : null;
+
+      if (!user?.email) {
+        throw new Error('User email not found. Please log in again.');
+      }
+
+      const payload = {
+        user_email: user.email,
+        days_ahead: params?.days_ahead || 7
+      };
+
+      console.log('calendarService: Syncing calendar meetings with payload:', payload);
+
+      const response = await api.post('/sync-calendar-meetings/', payload);
+
+      if (response.data && response.data.status === 'success') {
+        return {
+          success: true,
+          data: {
+            synced_count: response.data.meetings?.length || 0,
+            meetings: response.data.meetings || []
+          },
+          message: response.data.message
+        };
+      } else {
+        throw new Error(response.data.message || 'Failed to sync calendar meetings');
+      }
+    } catch (error: any) {
+      console.error('Calendar sync error:', error);
+      throw new Error(error.response?.data?.message || error.message || 'Failed to sync calendar meetings');
+    }
+  },
+
+  // 🆕 NEW: Get synced calendar meetings from backend
+  async getSyncedMeetings(params?: {
+    status?: string;
+    limit?: number;
+  }): Promise<ApiResponse<{ meetings: any[]; total_count: number }>> {
+    try {
+      const userData = localStorage.getItem('user');
+      const user = userData ? JSON.parse(userData) : null;
+
+      if (!user?.email) {
+        throw new Error('User email not found. Please log in again.');
+      }
+
+      const queryParams = new URLSearchParams();
+      queryParams.append('user_email', user.email);
+
+      if (params?.status) {
+        queryParams.append('status', params.status);
+      }
+      if (params?.limit) {
+        queryParams.append('limit', params.limit.toString());
+      }
+
+      const response = await api.get(`/calendar-meetings/?${queryParams.toString()}`);
+
+      if (response.data && response.data.status === 'success') {
+        return {
+          success: true,
+          data: {
+            meetings: response.data.meetings || [],
+            total_count: response.data.total_count || 0
+          },
+          message: 'Synced meetings retrieved successfully'
+        };
+      } else {
+        throw new Error(response.data.message || 'Failed to get synced meetings');
+      }
+    } catch (error: any) {
+      console.error('Get synced meetings error:', error);
+      throw new Error(error.response?.data?.message || error.message || 'Failed to get synced meetings');
+    }
+  },
+
   // Open calendar authorization in popup window with proper communication
   async openCalendarAuthorization(): Promise<void> {
     try {

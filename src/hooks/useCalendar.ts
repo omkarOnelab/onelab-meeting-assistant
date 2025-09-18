@@ -116,6 +116,44 @@ export const useCalendar = (): CalendarState & CalendarActions => {
     await fetchEvents();
   }, [fetchEvents]);
 
+  // 🆕 NEW: Sync calendar meetings to backend database
+  const syncCalendarMeetings = useCallback(async (daysAhead: number = 7) => {
+    try {
+      setState(prev => ({ ...prev, loading: true, error: null }));
+      const response = await calendarService.syncCalendarMeetings({ days_ahead: daysAhead });
+
+      setState(prev => ({ ...prev, loading: false }));
+      return response;
+    } catch (error: any) {
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: error.message
+      }));
+      throw error;
+    }
+  }, []);
+
+  // 🆕 NEW: Get synced meetings from backend
+  const getSyncedMeetings = useCallback(async (filters?: { status?: string; limit?: number }) => {
+    try {
+      setState(prev => ({ ...prev, loading: true, error: null }));
+
+      const response = await calendarService.getSyncedMeetings(filters);
+
+      setState(prev => ({ ...prev, loading: false }));
+
+      return response;
+    } catch (error: any) {
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: error.message
+      }));
+      throw error;
+    }
+  }, []);
+
   return {
     // State
     ...state,
@@ -126,6 +164,9 @@ export const useCalendar = (): CalendarState & CalendarActions => {
     checkAuthorization,
     startAuthorization,
     clearError,
-    refreshEvents
+    refreshEvents,
+    // 🆕 NEW sync functions
+    syncCalendarMeetings,
+    getSyncedMeetings
   };
 };

@@ -2,13 +2,13 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Search, 
-  Calendar, 
-  Users, 
-  Clock, 
-  User, 
-  ArrowRight, 
+import {
+  Search,
+  Calendar,
+  Users,
+  Clock,
+  User,
+  ArrowRight,
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
@@ -26,10 +26,31 @@ interface ApiResponse {
     id: number;
     userId: string;
     meetingid: string;
-    transcription: string;
+    transcription: any;
     summary: string;
-    actionItem: string;
+    actionItem: any;
     created_at: string;
+    // 🆕 Calendar integration fields
+    meeting_title?: string;
+    organizer?: {
+      name?: string;
+      email?: string;
+    };
+    attendee_count?: number;
+    actual_duration?: string;
+    scheduled_time?: string;
+    attendees?: Array<{
+      email: string;
+      name?: string;
+      response_status: string;
+      optional?: boolean;
+    }>;
+    calendar_meeting?: {
+      status?: string;
+    };
+    email_automation_ready?: boolean;
+    has_calendar_data?: boolean;
+    meeting_status?: string;
   }>;
 }
 
@@ -44,6 +65,17 @@ interface Meeting {
   status: string;
   meetingid: string;
   userId: string;
+  // 🆕 Additional properties from calendar integration
+  attendees?: Array<{
+    email: string;
+    name?: string;
+    response_status: string;
+    optional?: boolean;
+  }>;
+  organizer_email?: string;
+  has_calendar_data?: boolean;
+  scheduled_time?: string;
+  meeting_status?: string;
 }
 
 const Meetings = () => {
@@ -58,7 +90,7 @@ const Meetings = () => {
   const pageSize = 10; // Show 10 entries per page
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  
+
   // Get view type and page from URL params and determine if user is admin
   const viewType = searchParams.get('view') || 'my'; // Default to 'my' if no param
   const pageParam = searchParams.get('page');
@@ -68,43 +100,59 @@ const Meetings = () => {
   // Fetch meetings from API
   const fetchMeetings = async (page: number) => {
     try {
-      setLoading(true); 
+      setLoading(true);
       setError(null);
-      
-      console.log("isAdmin", isAdmin);
-      console.log("user?.id", user?.id);
-      
+
+      // Determine API endpoint based on user role
+
       // Use different API endpoints based on admin status
       const userId = user?.id || '5'; // Use actual user ID or fallback
       const searchParam = appliedSearchTerm ? `&search=${encodeURIComponent(appliedSearchTerm)}` : '';
-      const apiUrl = isAdmin 
+      const apiUrl = isAdmin
         ? `${import.meta.env.VITE_PUBLIC_AUTH_URL}/transcripts/?page=${page}&pageSize=${pageSize}${searchParam}` // All meetings for admin
         : `${import.meta.env.VITE_PUBLIC_AUTH_URL}/transcripts/?userId=${userId}&page=${page}&pageSize=${pageSize}${searchParam}`; // User's meetings
-      
+
       const response = await axios.get<ApiResponse>(apiUrl);
-      
-      // Transform API data to UI format
-      const transformedMeetings: Meeting[] = response.data.data.map((item) => ({
-        id: item.id,
-        name: `Meeting ${item.meetingid}`,
-        participants: 0, // Not available in API
-        host: "-", // Not available in API
-        date: new Date(item.created_at).toLocaleDateString('en-US', {
-          month: 'short',
-          day: '2-digit',
-          year: 'numeric'
-        }),
-        time: new Date(item.created_at).toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        }),
-        duration: "-", // Not available in API
-        status: "completed",
-        meetingid: item.meetingid,
-        userId: item.userId
-      }));
-      
+
+      // Transform API data to UI format with rich calendar data
+      const transformedMeetings: Meeting[] = response.data.data.map((item) => {
+        // Use calendar data if available, fallback to legacy format
+        const meetingTitle = item.meeting_title || `Meeting ${item.meetingid}`;
+        const organizerName = item.organizer?.name || item.organizer?.email?.split('@')[0] || "Unknown";
+        const attendeeCount = item.attendee_count || 0;
+        const actualDuration = item.actual_duration || "-";
+
+        // Use scheduled time if available, fallback to created time
+        const displayDate = item.scheduled_time ? new Date(item.scheduled_time) : new Date(item.created_at);
+
+        return {
+          id: item.id,
+          name: meetingTitle,  // 🆕 Real meeting title from calendar
+          participants: attendeeCount,  // 🆕 Real attendee count
+          host: organizerName,  // 🆕 Real organizer name
+          date: displayDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: '2-digit',
+            year: 'numeric'
+          }),
+          time: displayDate.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          }),
+          duration: actualDuration,  // 🆕 Real meeting duration
+          status: item.calendar_meeting?.status || item.meeting_status || "completed",  // 🆕 Use actual call status
+          meetingid: item.meetingid,
+          userId: item.userId,
+          // 🆕 Additional rich data for detailed view
+          attendees: item.attendees || [],
+          organizer_email: item.organizer?.email || "",
+          has_calendar_data: item.has_calendar_data || false,
+          scheduled_time: item.scheduled_time,
+          meeting_status: item.meeting_status || "completed"
+        };
+      });
+
       setMeetings(transformedMeetings);
       setTotalPages(response.data.totalPages);
       setTotalMeetings(response.data.total);
@@ -170,7 +218,7 @@ const Meetings = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="px-8 py-4 bg-white/90 backdrop-blur-sm border-b border-gray-200/60 shadow-lg">
-        <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-semibold text-foreground">
                 {isAdmin ? 'All Meetings' : 'My Meetings'}
@@ -184,7 +232,7 @@ const Meetings = () => {
                 )}
               </p>
             </div>
-            
+
             {/* Search */}
             <div className="flex items-center space-x-3">
               <div className="relative w-80 max-w-sm">
@@ -198,7 +246,7 @@ const Meetings = () => {
                     if (e.key === 'Enter') {
                       handleApplySearch();
                     }
-                  }}  
+                  }}
                 />
               </div>
               <Button
@@ -235,7 +283,7 @@ const Meetings = () => {
           <div className="flex items-center justify-center p-12">
             <div className="text-center bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-gray-200/60">
               <p className="text-red-500 mb-6 text-lg font-medium">{error}</p>
-              <Button 
+              <Button
                 onClick={() => fetchMeetings(currentPage)}
                 className="bg-[#078586] hover:bg-[#078586]/90 text-white px-6 py-3 rounded-lg transition-all duration-200"
               >
@@ -266,7 +314,7 @@ const Meetings = () => {
                     </thead>
                     <tbody className="divide-y divide-gray-200/60">
                       {filteredMeetings.map((meeting) => (
-                        <tr 
+                        <tr
                           key={meeting.id}
                           className="hover:bg-gray-50/50 transition-colors duration-200 cursor-pointer"
                           onClick={() => handleMeetingClick(meeting.id)}
@@ -289,16 +337,23 @@ const Meetings = () => {
                           <td className="px-6 py-4">
                             <div className="flex items-center">
                               <User className="w-4 h-4 mr-2 text-[#078586]" />
-                              <span className="text-sm text-[#282F3B]/70">
-                                {meeting.host}
-                              </span>
+                              <div className="flex flex-col">
+                                <span className="text-sm text-[#282F3B]/70 font-medium">
+                                  {meeting.host}
+                                </span>
+                                {meeting.organizer_email && (
+                                  <span className="text-xs text-[#282F3B]/50">
+                                    {meeting.organizer_email}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center">
                               <Users className="w-4 h-4 mr-2 text-[#078586]" />
                               <span className="text-sm text-[#282F3B]/70">
-                                {meeting.participants === 0 ? "-" : `${meeting.participants}`}
+                                {meeting.participants === 0 ? "-" : `${meeting.participants} attendees`}
                               </span>
                             </div>
                           </td>
@@ -324,7 +379,16 @@ const Meetings = () => {
                             </span>
                           </td>
                           <td className="px-6 py-4">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${meeting.status === 'completed'
+                              ? 'bg-green-100 text-green-800'
+                              : meeting.status === 'in_progress'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : meeting.status === 'scheduled'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : meeting.status === 'cancelled'
+                                    ? 'bg-red-100 text-red-800'
+                                    : 'bg-gray-100 text-gray-800'
+                              }`}>
                               {meeting.status}
                             </span>
                           </td>
@@ -367,7 +431,7 @@ const Meetings = () => {
                     <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>
                 </div>
-                
+
                 <div className="flex items-center space-x-3">
                   <span className="text-sm text-[#282F3B]/70 font-medium">
                     Page {currentPage} of {totalPages}
@@ -379,11 +443,10 @@ const Meetings = () => {
                         variant={currentPage === page ? "default" : "outline"}
                         size="sm"
                         onClick={() => handlePageChange(page)}
-                        className={`w-8 h-8 p-0 rounded-lg font-medium transition-all duration-200 text-sm ${
-                          currentPage === page 
-                            ? "bg-[#078586] text-white shadow-lg" 
-                            : "border-2 border-gray-200/60 hover:border-[#078586] hover:bg-[#078586]/10 text-[#282F3B] hover:text-[#078586]"
-                        }`}
+                        className={`w-8 h-8 p-0 rounded-lg font-medium transition-all duration-200 text-sm ${currentPage === page
+                          ? "bg-[#078586] text-white shadow-lg"
+                          : "border-2 border-gray-200/60 hover:border-[#078586] hover:bg-[#078586]/10 text-[#282F3B] hover:text-[#078586]"
+                          }`}
                       >
                         {page}
                       </Button>

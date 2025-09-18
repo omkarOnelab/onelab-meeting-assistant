@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, ArrowUpRight, MessageSquare, Loader2, RefreshCw } from "lucide-react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Calendar, Clock, ArrowUpRight, Loader2, RefreshCw } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { useEffect } from "react";
 import { message } from "antd";
 import CalendarIntegration from "@/components/auth/dashboard/CalendarIntegration";
@@ -43,7 +43,6 @@ const DashboardHome = () => {
     },
   ];
 
-  const recentMeetings = dashboardData?.recent_meetings || [];
   const weeklySummary = dashboardData?.weekly_summary || {
     meetings_completed: 0,
     total_hours: "0h",
@@ -157,123 +156,45 @@ const DashboardHome = () => {
           )}
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Recent Meetings */}
-          <div className="lg:col-span-2">
-            <Card className="bg-white border-0 shadow-card">
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-semibold text-foreground">Recent Meetings</CardTitle>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link to="/auth/meetings?view=my" className="text-primary hover:text-primary/80">
-                      View all
-                      <ArrowUpRight className="w-4 h-4 ml-1" />
-                    </Link>
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
+        {/* Weekly Summary */}
+        <div className="max-w-md">
+          <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-0 shadow-card">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-foreground">This Week</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
                 {loading ? (
-                  // Loading state for recent meetings
-                  Array.from({ length: 3 }).map((_, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 bg-surface rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-primary/10 rounded-lg">
-                          <Loader2 className="w-4 h-4 text-primary animate-spin" />
-                        </div>
-                        <div>
-                          <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mb-2"></div>
-                          <div className="h-3 w-24 bg-gray-200 rounded animate-pulse"></div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="h-6 w-16 bg-gray-200 rounded-full animate-pulse mb-1"></div>
-                        <div className="h-3 w-12 bg-gray-200 rounded animate-pulse"></div>
-                      </div>
-                    </div>
-                  ))
-                ) : recentMeetings.length > 0 ? (
-                  recentMeetings.map((meeting, index) => (
-                    <div key={meeting.id || index} className="flex items-center justify-between p-4 bg-surface rounded-lg hover:bg-surface-hover transition-colors">
-                      <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-primary/10 rounded-lg">
-                          <MessageSquare className="w-4 h-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">{meeting.name}</p>
-                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                            <span>{meeting.participants} participant{meeting.participants !== 1 ? 's' : ''}</span>
-                            <span>•</span>
-                            <span>{meeting.duration}</span>
-                            {meeting.action_items > 0 && (
-                              <>
-                                <span>•</span>
-                                <span>{meeting.action_items} action item{meeting.action_items !== 1 ? 's' : ''}</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="px-2 py-1 bg-success/10 text-success text-xs font-medium rounded-full">
-                          {meeting.status}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">{meeting.time}</p>
-                      </div>
+                  // Loading state for weekly summary
+                  Array.from({ length: 4 }).map((_, index) => (
+                    <div key={index} className="flex justify-between items-center">
+                      <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="h-4 w-8 bg-gray-200 rounded animate-pulse"></div>
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>No meetings found</p>
-                    <p className="text-sm">Your recent meetings will appear here</p>
-                  </div>
+                  <>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Meetings completed</span>
+                      <span className="font-semibold text-foreground">{weeklySummary.meetings_completed}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Total hours</span>
+                      <span className="font-semibold text-foreground">{weeklySummary.total_hours}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Action items created</span>
+                      <span className="font-semibold text-foreground">{weeklySummary.action_items_created}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Transcripts processed</span>
+                      <span className="font-semibold text-foreground">{weeklySummary.transcripts_processed}</span>
+                    </div>
+                  </>
                 )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Weekly Summary */}
-          <div>
-            <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-0 shadow-card">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-foreground">This Week</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {loading ? (
-                    // Loading state for weekly summary
-                    Array.from({ length: 4 }).map((_, index) => (
-                      <div key={index} className="flex justify-between items-center">
-                        <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
-                        <div className="h-4 w-8 bg-gray-200 rounded animate-pulse"></div>
-                      </div>
-                    ))
-                  ) : (
-                    <>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Meetings completed</span>
-                        <span className="font-semibold text-foreground">{weeklySummary.meetings_completed}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Total hours</span>
-                        <span className="font-semibold text-foreground">{weeklySummary.total_hours}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Action items created</span>
-                        <span className="font-semibold text-foreground">{weeklySummary.action_items_created}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Transcripts processed</span>
-                        <span className="font-semibold text-foreground">{weeklySummary.transcripts_processed}</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

@@ -76,4 +76,7 @@ export interface CalendarActions {
   startAuthorization: () => Promise<void>;
   clearError: () => void;
   refreshEvents: () => Promise<void>;
+  // 🆕 NEW sync functions
+  syncCalendarMeetings: (daysAhead?: number) => Promise<any>;
+  getSyncedMeetings: (filters?: { status?: string; limit?: number }) => Promise<any>;
 }

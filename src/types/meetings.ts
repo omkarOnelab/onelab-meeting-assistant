@@ -3,23 +3,40 @@
 
 export interface Meeting {
   id: number;
-  title: string;
-  presenter: string;
+  name: string;  // Meeting title (updated from API)
+  title?: string;  // Legacy field
+  presenter?: string;  // Legacy field
+  host: string;  // Meeting organizer/host
   date: string;
   time: string;
   duration: string;
-  logo: string;
-  logoColor: string;
-  // Additional fields for production
+  status: string;
+  participants: number;  // Number of attendees
+  meetingid: string;
+  userId: string;
+
+  // 🆕 NEW: Rich calendar data
+  attendees?: Array<{
+    email: string;
+    name: string;
+    response_status: string;
+    optional: boolean;
+  }>;
+  organizer_email?: string;
+  has_calendar_data?: boolean;
+  scheduled_time?: string;
+  meeting_status?: string;
+  email_automation_ready?: boolean;
+
+  // Legacy fields for backward compatibility
+  logo?: string;
+  logoColor?: string;
   description?: string;
-  status?: 'scheduled' | 'completed' | 'cancelled';
-  participants?: string[];
   recordingUrl?: string;
   transcriptUrl?: string;
   createdAt?: string;
   updatedAt?: string;
-  // Transcript data from API
-  transcript?: any; // Will store ParsedTranscript data
+  transcript?: any;
 }
 
 export interface MeetingGroup {
