@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import Root from "./layouts/Root";
 import NonAuth from "./layouts/NonAuth";
 import Login from "./pages/non_auth/login";
@@ -23,7 +23,7 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "",
-            element: <DashboardHome />,
+            element: <Navigate to="/auth/dashboard" replace />,
           },
           {
             path: "dashboard",

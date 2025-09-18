@@ -41,7 +41,11 @@ interface ApiResponse {
     meetingid: string;
     transcription: any;
     summary: string;
-    actionItem: any;
+    actionItem: Array<{
+      items: string[];
+      owner: string;
+      deadline: string;
+    }>;
     created_at: string;
     // 🆕 Additional fields from calendar integration
     meeting_title?: string;
@@ -411,26 +415,13 @@ const MeetingDetail = () => {
                           copyToClipboard("No action items available", "Action items");
                           return;
                         }
-
+                        
                         const formattedActionItems = actionItems.map((item: any, index: number) => {
-                          const owner = item.owner || item.assignee || "User";
-                          let tasks = [];
-
-                          if (item.items && Array.isArray(item.items)) {
-                            tasks = item.items;
-                          } else if (item.item) {
-                            tasks = [item.item];
-                          } else if (item.task) {
-                            tasks = [item.task];
-                          } else {
-                            tasks = ["Action item"];
-                          }
-
-                          return tasks.map((task: string, taskIndex: number) =>
-                            `${index + 1}.${tasks.length > 1 ? (taskIndex + 1) : ''} ${owner}: ${task}`
-                          ).join('\n');
+                          const items = item.items || item.item || item.task || ["Action item"];
+                          const itemsList = Array.isArray(items) ? items : [items];
+                          return `${index + 1}. ${item.owner || item.assignee || "User"}: ${itemsList.join(", ")}`;
                         }).join('\n');
-
+                        
                         copyToClipboard(formattedActionItems, "Action items");
                       } catch (error) {
                         copyToClipboard("Error formatting action items", "Action items");
@@ -474,40 +465,29 @@ const MeetingDetail = () => {
                           </div>
                         );
                       }
-
+                      
                       return actionItems.map((item: any, index: number) => {
-                        // Processing action item
-
-                        // Handle different action item formats
-                        let tasks = [];
-                        if (item.items && Array.isArray(item.items)) {
-                          tasks = item.items;
-                        } else if (item.item) {
-                          tasks = [item.item];
-                        } else if (item.task) {
-                          tasks = [item.task];
-                        } else if (typeof item === 'string') {
-                          tasks = [item];
-                        } else {
-                          tasks = ["No description provided"];
-                        }
-
-                        const owner = item.owner || item.assignee || "User";
-
-                        return tasks.map((task: string, taskIndex: number) => (
-                          <div key={`${index}-${taskIndex}`} className="bg-gradient-to-r from-gray-50 to-gray-100/50 p-4 rounded-xl border border-gray-200/30 hover:shadow-md transition-all duration-200">
+                        const items = item.items || item.item || item.task || ["Action item"];
+                        const itemsList = Array.isArray(items) ? items : [items];
+                        
+                        return (
+                          <div key={index} className="bg-gradient-to-r from-gray-50 to-gray-100/50 p-4 rounded-xl border border-gray-200/30 hover:shadow-md transition-all duration-200">
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
-                                <p className="text-sm font-medium text-gray-900 mb-1">{owner}:</p>
-                                <p className="text-xs text-gray-500 flex items-start">
-                                  <span className="text-[#078586] mr-2 mt-0.5">•</span>
-                                  {task}
-                                </p>
+                                <p className="text-sm font-medium text-gray-900 mb-2">{item.owner || item.assignee || "User"}:</p>
+                                <div className="space-y-1">
+                                  {itemsList.map((actionItem: string, itemIndex: number) => (
+                                    <p key={itemIndex} className="text-xs text-gray-500 flex items-start">
+                                      <span className="text-[#078586] mr-2 mt-0.5">•</span>
+                                      {actionItem}
+                                    </p>
+                                  ))}
+                                </div>
                               </div>
                             </div>
                           </div>
-                        ));
-                      }).flat();
+                        );
+                      });
                     } catch (error) {
                       console.error('Error parsing action items:', error);
                       return (
