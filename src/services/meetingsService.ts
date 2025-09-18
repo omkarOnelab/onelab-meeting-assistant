@@ -34,11 +34,17 @@ api.interceptors.request.use(
 const mockMeetings: Meeting[] = [
   {
     id: 1,
+    name: 'Fireflies AI Platform Quick Overview',
     title: 'Fireflies AI Platform Quick Overview',
     presenter: 'Fred Fireflies',
+    host: 'Fred Fireflies',
     date: 'Thu, Aug 08 2024',
     time: '03:52 PM',
     duration: '8 mins',
+    status: 'completed',
+    participants: 5,
+    meetingid: 'meeting-1',
+    userId: 'user-1',
     logo: 'F',
     logoColor: '#722ed1'
   }
@@ -51,11 +57,17 @@ const mockAllMeetings: MeetingGroup[] = [
     meetings: [
       {
         id: 1,
+        name: 'DSM for Barkhappy (Nuzzl)',
         title: 'DSM for Barkhappy (Nuzzl)',
         presenter: 'Yash Mahajan',
+        host: 'Yash Mahajan',
         date: 'Tue, Jul 29',
         time: '10:00 AM',
         duration: '49 mins',
+        status: 'completed',
+        participants: 3,
+        meetingid: 'meeting-dsm-1',
+        userId: 'user-1',
         logo: 'Y',
         logoColor: '#1890ff'
       }
@@ -67,11 +79,17 @@ const mockAllMeetings: MeetingGroup[] = [
     meetings: [
       {
         id: 2,
+        name: 'Sync up call for Nuzzl (Barkhappy)',
         title: 'Sync up call for Nuzzl (Barkhappy)',
         presenter: 'Yash Mahajan',
+        host: 'Yash Mahajan',
         date: 'Tue, Jul 15',
         time: '05:30 PM',
         duration: '51 mins',
+        status: 'completed',
+        participants: 4,
+        meetingid: 'meeting-sync-1',
+        userId: 'user-1',
         logo: 'Y',
         logoColor: '#1890ff'
       }
@@ -83,11 +101,17 @@ const mockAllMeetings: MeetingGroup[] = [
     meetings: [
       {
         id: 3,
+        name: 'Introductory call with HR',
         title: 'Introductory call with HR',
         presenter: 'Yash Mahajan',
+        host: 'HR Team',
         date: 'Thu, Jul 03',
         time: '03:30 PM',
         duration: '38 mins',
+        status: 'completed',
+        participants: 2,
+        meetingid: 'meeting-hr-1',
+        userId: 'user-1',
         logo: 'Y',
         logoColor: '#1890ff'
       }
@@ -99,11 +123,17 @@ const mockAllMeetings: MeetingGroup[] = [
     meetings: [
       {
         id: 4,
+        name: 'DSM for Barkhappy (Nuzzl)',
         title: 'DSM for Barkhappy (Nuzzl)',
         presenter: 'Yash Mahajan',
+        host: 'Yash Mahajan',
         date: 'Thu, Jun 26',
         time: '10:00 AM',
         duration: '11 mins',
+        status: 'completed',
+        participants: 3,
+        meetingid: 'meeting-dsm-2',
+        userId: 'user-1',
         logo: 'Y',
         logoColor: '#1890ff'
       }
@@ -137,38 +167,40 @@ export const meetingsService = {
     try {
       const response = await transcriptsService.getTranscripts(userId, page, pageSize);
       const transcripts = response.data;
-      
+
       // Debug logging
       console.log('MeetingsService Debug:', {
         transcriptsLength: transcripts.length,
         transcripts: transcripts.map(t => ({ id: t.id, meetingid: t.meetingid })),
         firstTranscript: transcripts[0]
       });
-      
+
       // Convert transcripts to meetings format
       const meetings: Meeting[] = transcripts.map((transcript) => {
         // Parse the JSON strings safely
         let parsedTranscription = [];
         let parsedActionItem = [];
-        
+
         try {
           parsedTranscription = JSON.parse(transcript.transcription);
         } catch (error) {
           console.error('Error parsing transcription:', error);
           parsedTranscription = [];
         }
-        
+
         try {
           parsedActionItem = JSON.parse(transcript.actionItem);
         } catch (error) {
           console.error('Error parsing actionItem:', error);
           parsedActionItem = [];
         }
-        
+
         return {
           id: transcript.id,
+          name: `Meeting ${transcript.meetingid}`,
           title: `Meeting ${transcript.meetingid}`,
           presenter: '-', // Not available in API yet
+          host: '-', // Not available in API yet
           date: new Date(transcript.created_at).toLocaleDateString('en-US', {
             weekday: 'short',
             month: 'short',
@@ -181,9 +213,12 @@ export const meetingsService = {
             hour12: true
           }),
           duration: '-', // Not available in API yet
+          status: 'completed',
+          participants: 0, // Not available in API yet
+          meetingid: transcript.meetingid,
+          userId: transcript.userId || 'unknown',
           logo: 'M',
           logoColor: '#722ed1',
-          participants: [], // Not available in API yet
           transcript: {
             ...transcript,
             transcription: parsedTranscription,
@@ -217,7 +252,7 @@ export const meetingsService = {
   async getMyMeetings(): Promise<ApiResponse<Meeting[]>> {
     try {
       const response = await api.get('/meetings/my-meetings/');
-      
+
       return {
         success: true,
         data: response.data,
@@ -238,7 +273,7 @@ export const meetingsService = {
   async getAllMeetings(): Promise<ApiResponse<MeetingGroup[]>> {
     try {
       const response = await api.get('/meetings/all/');
-      
+
       return {
         success: true,
         data: response.data,
@@ -259,7 +294,7 @@ export const meetingsService = {
   async getMeetingsPaginated(page: number = 1, limit: number = 10): Promise<PaginatedResponse<Meeting>> {
     try {
       const response = await api.get(`/meetings/?page=${page}&limit=${limit}`);
-      
+
       return {
         success: true,
         data: response.data.results || response.data,
@@ -278,7 +313,7 @@ export const meetingsService = {
       const startIndex = (page - 1) * limit;
       const endIndex = startIndex + limit;
       const paginatedMeetings = allMeetings.slice(startIndex, endIndex);
-      
+
       return {
         success: true,
         data: paginatedMeetings,
@@ -297,7 +332,7 @@ export const meetingsService = {
   async getMeetingById(id: number): Promise<ApiResponse<Meeting>> {
     try {
       const response = await api.get(`/meetings/${id}/`);
-      
+
       return {
         success: true,
         data: response.data,
@@ -308,7 +343,7 @@ export const meetingsService = {
       // Fallback to mock data
       const allMeetings = mockAllMeetings.flatMap(group => group.meetings);
       const meeting = allMeetings.find(m => m.id === id);
-      
+
       if (meeting) {
         return {
           success: true,
@@ -325,7 +360,7 @@ export const meetingsService = {
   async createMeeting(meetingData: CreateMeetingRequest): Promise<ApiResponse<Meeting>> {
     try {
       const response = await api.post('/meetings/', meetingData);
-      
+
       return {
         success: true,
         data: response.data,
@@ -341,7 +376,7 @@ export const meetingsService = {
   async updateMeeting(id: number, meetingData: UpdateMeetingRequest): Promise<ApiResponse<Meeting>> {
     try {
       const response = await api.put(`/meetings/${id}/`, meetingData);
-      
+
       return {
         success: true,
         data: response.data,
@@ -357,7 +392,7 @@ export const meetingsService = {
   async deleteMeeting(id: number): Promise<ApiResponse<{ id: number }>> {
     try {
       await api.delete(`/meetings/${id}/`);
-      
+
       return {
         success: true,
         data: { id },
@@ -373,7 +408,7 @@ export const meetingsService = {
   async searchMeetings(query: string): Promise<ApiResponse<Meeting[]>> {
     try {
       const response = await api.get(`/meetings/search/?q=${encodeURIComponent(query)}`);
-      
+
       return {
         success: true,
         data: response.data,
@@ -384,10 +419,10 @@ export const meetingsService = {
       // Fallback to mock data
       const allMeetings = mockAllMeetings.flatMap(group => group.meetings);
       const filteredMeetings = allMeetings.filter(meeting =>
-        meeting.title.toLowerCase().includes(query.toLowerCase()) ||
-        meeting.presenter.toLowerCase().includes(query.toLowerCase())
+        meeting.title?.toLowerCase().includes(query.toLowerCase()) ||
+        meeting.presenter?.toLowerCase().includes(query.toLowerCase())
       );
-      
+
       return {
         success: true,
         data: filteredMeetings,
