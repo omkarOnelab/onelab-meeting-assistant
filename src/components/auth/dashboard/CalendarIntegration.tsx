@@ -130,7 +130,7 @@ const CalendarIntegration: React.FC = () => {
 
   if (!hasAuthorization) {
     return (
-      <Card className="bg-white border-0 shadow-card">
+      <Card className="bg-white border-0 shadow-card" data-calendar-section>
         <CardHeader className="text-center pb-4">
           <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-500/10 to-blue-600/10 rounded-full flex items-center justify-center mb-4">
             <Calendar className="w-8 h-8 text-blue-600" />
@@ -169,7 +169,7 @@ const CalendarIntegration: React.FC = () => {
   }
 
   return (
-    <Card className="bg-white border-0 shadow-card">
+    <Card className="bg-white border-0 shadow-card" data-calendar-section>
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
