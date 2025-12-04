@@ -78,13 +78,36 @@ export const authService = {
         password: credentials.password
       });
 
+      // Check for blocked user response first (when API returns success: false with is_blocked: true)
+      if (response.data && response.data.is_blocked === true) {
+        const errorMessage = response.data.message || 'Your account has been blocked. Please contact your administrator for assistance.';
+        throw new Error(errorMessage);
+      }
+
+      // Check if success is false (even without is_blocked flag)
+      if (response.data && response.data.success === false) {
+        const errorMessage = response.data.message || 'Login failed. Please try again.';
+        throw new Error(errorMessage);
+      }
+
       if (response.data && response.data.success && response.data.data) {
+        // Check if user is blocked (additional check in case is_blocked is in data.user)
+        const user = response.data.data.user;
+        if (user && user.is_blocked === true) {
+          throw new Error('Your account has been blocked. Please contact your administrator for assistance.');
+        }
         return response.data;
       } else {
-        throw new Error('Invalid response format');
+        // Handle other error cases
+        const errorMessage = response.data?.message || 'Invalid response format';
+        throw new Error(errorMessage);
       }
     } catch (error: any) {
       console.error('Login error:', error);
+      // If error is already a string (our custom blocked user error), throw it as is
+      if (error.message && (error.message.includes('blocked') || error.message.includes('Login failed'))) {
+        throw error;
+      }
       throw new Error(error.response?.data?.message || error.message || 'Login failed');
     }
   },
@@ -118,13 +141,36 @@ export const authService = {
         token: googleResponse.access_token
       });
 
+      // Check for blocked user response first (when API returns success: false with is_blocked: true)
+      if (response.data && response.data.is_blocked === true) {
+        const errorMessage = response.data.message || 'Your account has been blocked. Please contact your administrator for assistance.';
+        throw new Error(errorMessage);
+      }
+
+      // Check if success is false (even without is_blocked flag)
+      if (response.data && response.data.success === false) {
+        const errorMessage = response.data.message || 'Google login failed. Please try again.';
+        throw new Error(errorMessage);
+      }
+
       if (response.data && response.data.success && response.data.data) {
+        // Check if user is blocked (additional check in case is_blocked is in data.user)
+        const user = response.data.data.user;
+        if (user && user.is_blocked === true) {
+          throw new Error('Your account has been blocked. Please contact your administrator for assistance.');
+        }
         return response.data;
       } else {
-        throw new Error('Invalid response format');
+        // Handle other error cases
+        const errorMessage = response.data?.message || 'Invalid response format';
+        throw new Error(errorMessage);
       }
     } catch (error: any) {
       console.error('Google login error:', error);
+      // If error is already a string (our custom blocked user error), throw it as is
+      if (error.message && (error.message.includes('blocked') || error.message.includes('Google login failed'))) {
+        throw error;
+      }
       throw new Error(error.response?.data?.message || error.message || 'Google login failed');
     }
   },
@@ -136,13 +182,30 @@ export const authService = {
         token: microsoftResponse.accessToken
       });
 
+      // Check for blocked user response first (when API returns success: false with is_blocked: true)
+      if (response.data && response.data.is_blocked === true) {
+        const errorMessage = response.data.message || 'Your account has been blocked. Please contact your administrator for assistance.';
+        throw new Error(errorMessage);
+      }
+
       if (response.data && response.data.success && response.data.data) {
+        // Check if user is blocked (additional check in case is_blocked is in data.user)
+        const user = response.data.data.user;
+        if (user && user.is_blocked === true) {
+          throw new Error('Your account has been blocked. Please contact your administrator for assistance.');
+        }
         return response.data;
       } else {
-        throw new Error('Invalid response format');
+        // Handle other error cases
+        const errorMessage = response.data?.message || 'Invalid response format';
+        throw new Error(errorMessage);
       }
     } catch (error: any) {
       console.error('Microsoft login error:', error);
+      // If error is already a string (our custom blocked user error), throw it as is
+      if (error.message && error.message.includes('blocked')) {
+        throw error;
+      }
       throw new Error(error.response?.data?.message || error.message || 'Microsoft login failed');
     }
   },
@@ -166,12 +229,24 @@ export const authService = {
       const response = await api.get('/api/auth/user/');
 
       if (response.data && response.data.success && response.data.data) {
+        // Check if user is blocked
+        const user = response.data.data.user;
+        if (user && user.is_blocked === true) {
+          // Clear tokens if user is blocked
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          throw new Error('Your account has been blocked. Please contact your administrator for assistance.');
+        }
         return response.data;
       } else {
         throw new Error('Invalid response format');
       }
     } catch (error: any) {
       console.error('Get current user error:', error);
+      // If error is already a string (our custom blocked user error), throw it as is
+      if (error.message && error.message.includes('blocked')) {
+        throw error;
+      }
       throw new Error(error.response?.data?.message || error.message || 'Failed to get user data');
     }
   },

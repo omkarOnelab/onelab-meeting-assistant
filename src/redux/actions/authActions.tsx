@@ -14,12 +14,23 @@ export const loginUser = createAsyncThunk(
     try {
       const response = await authService.login(credentials);
       
+      // Check if user is blocked (additional check, though service should have caught this)
+      if (response.data.user && response.data.user.is_blocked === true) {
+        // Clear any tokens that might have been set
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        return rejectWithValue('Your account has been blocked. Please contact your administrator for assistance.');
+      }
+      
       // Store tokens in localStorage
       localStorage.setItem('token', response.data.access);
       localStorage.setItem('refreshToken', response.data.refresh);
       
       return response;
     } catch (error: any) {
+      // Clear tokens on error
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
       return rejectWithValue(error.message || 'Login failed');
     }
   }
@@ -50,12 +61,23 @@ export const googleLogin = createAsyncThunk(
     try {
       const response = await authService.googleLogin(googleResponse);
       
+      // Check if user is blocked (additional check, though service should have caught this)
+      if (response.data.user && response.data.user.is_blocked === true) {
+        // Clear any tokens that might have been set
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        return rejectWithValue('Your account has been blocked. Please contact your administrator for assistance.');
+      }
+      
       // Store tokens in localStorage
       localStorage.setItem('token', response.data.access);
       localStorage.setItem('refreshToken', response.data.refresh);
       
       return response;
     } catch (error: any) {
+      // Clear tokens on error
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
       return rejectWithValue(error.message || 'Google login failed');
     }
   }
@@ -68,12 +90,23 @@ export const microsoftLogin = createAsyncThunk(
     try {
       const response = await authService.microsoftLogin(microsoftResponse);
       
+      // Check if user is blocked (additional check, though service should have caught this)
+      if (response.data.user && response.data.user.is_blocked === true) {
+        // Clear any tokens that might have been set
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        return rejectWithValue('Your account has been blocked. Please contact your administrator for assistance.');
+      }
+      
       // Store tokens in localStorage
       localStorage.setItem('token', response.data.access);
       localStorage.setItem('refreshToken', response.data.refresh);
       
       return response;
     } catch (error: any) {
+      // Clear tokens on error
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
       return rejectWithValue(error.message || 'Microsoft login failed');
     }
   }

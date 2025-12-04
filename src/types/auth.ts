@@ -5,6 +5,7 @@ export interface BackendUser {
   first_name: string;
   last_name: string;
   is_admin: boolean;
+  is_blocked?: boolean;
   sign_up_type: 'google' | 'microsoft' | 'email';
   created_at: string;
   updated_at: string;

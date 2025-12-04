@@ -11,11 +11,31 @@ import {
   Shield,
   ShieldCheck,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Ban,
+  UserCheck
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import axios from "axios";
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../../redux/store';
+import { userService } from '../../../services/userService';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // API Response Types
 interface Employee {
@@ -25,6 +45,7 @@ interface Employee {
   last_name: string;
   sign_up_type: string;
   is_admin: boolean;
+  is_blocked?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -60,6 +81,32 @@ const Employees = () => {
   // UI states
   const [showFilters, setShowFilters] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState(false);
+  const [blockingUsers, setBlockingUsers] = useState<Set<number>>(new Set());
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    employeeId: number | null;
+    employeeName: string;
+    isBlocked: boolean;
+  }>({
+    open: false,
+    employeeId: null,
+    employeeName: '',
+    isBlocked: false,
+  });
+  const [roleChangeDialog, setRoleChangeDialog] = useState<{
+    open: boolean;
+    employeeId: number | null;
+    employeeName: string;
+    currentRole: boolean;
+    newRole: boolean;
+  }>({
+    open: false,
+    employeeId: null,
+    employeeName: '',
+    currentRole: false,
+    newRole: false,
+  });
+  const [updatingRoles, setUpdatingRoles] = useState<Set<number>>(new Set());
 
   // Fetch employees from API
   const fetchEmployees = async (page: number = 1) => {
@@ -161,6 +208,131 @@ const Employees = () => {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     fetchEmployees(page);
+  };
+
+  // Show confirmation dialog
+  const showBlockConfirmation = (employeeId: number, employeeName: string, isBlocked: boolean) => {
+    setConfirmDialog({
+      open: true,
+      employeeId,
+      employeeName,
+      isBlocked,
+    });
+  };
+
+  // Show role change confirmation dialog
+  const showRoleChangeConfirmation = (employeeId: number, employeeName: string, currentIsAdmin: boolean, newIsAdmin: boolean) => {
+    setRoleChangeDialog({
+      open: true,
+      employeeId,
+      employeeName,
+      currentRole: currentIsAdmin,
+      newRole: newIsAdmin,
+    });
+  };
+
+  // Handle role change (called after confirmation)
+  const handleRoleChange = async (employeeId: number, newIsAdmin: boolean) => {
+    // Close dialog
+    setRoleChangeDialog({
+      open: false,
+      employeeId: null,
+      employeeName: '',
+      currentRole: false,
+      newRole: false,
+    });
+
+    try {
+      // Add to updating set
+      setUpdatingRoles(prev => new Set(prev).add(employeeId));
+      setError(null);
+
+      // Call the user service to update admin status
+      const response = await userService.updateAdminStatus(employeeId, newIsAdmin);
+
+      if (response.success && response.data) {
+        // Update the employee's admin status in the local state using the response data
+        setEmployees(prevEmployees =>
+          prevEmployees.map(emp =>
+            emp.id === employeeId
+              ? { ...emp, is_admin: response.data.user.is_admin }
+              : emp
+          )
+        );
+      } else {
+        setError(response.message || `Failed to ${newIsAdmin ? 'grant' : 'revoke'} admin access`);
+      }
+    } catch (err: any) {
+      console.error(`Error updating admin status:`, err);
+      
+      if (err.message?.includes('401') || err.response?.status === 401) {
+        setError('Authentication failed. Please log in again.');
+      } else if (err.message?.includes('403') || err.response?.status === 403) {
+        setError('Access denied. You do not have permission to change user roles.');
+      } else {
+        setError(err.message || `Failed to ${newIsAdmin ? 'grant' : 'revoke'} admin access`);
+      }
+    } finally {
+      // Remove from updating set
+      setUpdatingRoles(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(employeeId);
+        return newSet;
+      });
+    }
+  };
+
+  // Handle block/unblock user (called after confirmation)
+  const handleBlockUser = async (employeeId: number, isCurrentlyBlocked: boolean) => {
+    // Close dialog
+    setConfirmDialog({
+      open: false,
+      employeeId: null,
+      employeeName: '',
+      isBlocked: false,
+    });
+
+    try {
+      // Add to blocking set
+      setBlockingUsers(prev => new Set(prev).add(employeeId));
+      setError(null);
+
+      // Determine the new blocked status (toggle)
+      const newBlockedStatus = !isCurrentlyBlocked;
+
+      // Call the user service to block/unblock user
+      const response = await userService.blockUser(employeeId, newBlockedStatus);
+
+      if (response.success && response.data) {
+        // Update the employee's blocked status in the local state using the response data
+        setEmployees(prevEmployees =>
+          prevEmployees.map(emp =>
+            emp.id === employeeId
+              ? { ...emp, is_blocked: response.data.user.is_blocked }
+              : emp
+          )
+        );
+      } else {
+        setError(response.message || `Failed to ${newBlockedStatus ? 'block' : 'unblock'} user`);
+      }
+    } catch (err: any) {
+      console.error(`Error ${isCurrentlyBlocked ? 'unblocking' : 'blocking'} user:`, err);
+      
+      if (err.message?.includes('401') || err.response?.status === 401) {
+        setError('Authentication failed. Please log in again.');
+      } else if (err.message?.includes('403') || err.response?.status === 403) {
+        setError('Access denied. You do not have permission to block users.');
+      } else {
+        setError(err.message || `Failed to ${isCurrentlyBlocked ? 'unblock' : 'block'} user`);
+      }
+    } finally {
+      // Remove from blocking set
+      setBlockingUsers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(employeeId);
+        return newSet;
+      });
+    }
   };
 
   // Format date
@@ -375,6 +547,7 @@ const Employees = () => {
                   <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Role</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Created</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Last Updated</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200/60">
@@ -405,6 +578,9 @@ const Employees = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-8 w-20 bg-gray-200 rounded animate-pulse"></div>
                       </td>
                     </tr>
                   ))
@@ -440,23 +616,58 @@ const Employees = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          {employee.is_admin ? (
-                            <>
-                              <ShieldCheck className="w-4 h-4 mr-2 text-green-600" />
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                Admin
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <Shield className="w-4 h-4 mr-2 text-gray-500" />
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                User
-                              </span>
-                            </>
-                          )}
-                        </div>
+                        <Select
+                          value={employee.is_admin ? "admin" : "user"}
+                          onValueChange={(value) => {
+                            const newIsAdmin = value === "admin";
+                            if (newIsAdmin !== employee.is_admin) {
+                              showRoleChangeConfirmation(
+                                employee.id,
+                                `${employee.first_name} ${employee.last_name}`,
+                                employee.is_admin,
+                                newIsAdmin
+                              );
+                            }
+                          }}
+                          disabled={updatingRoles.has(employee.id) || loading}
+                        >
+                          <SelectTrigger className="w-[120px] h-8 text-xs border-[#282F3B]/20 focus:border-[#078586]">
+                            <SelectValue>
+                              {employee.is_admin ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  Admin
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                  User
+                                </span>
+                              )}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={employee.is_admin ? "user" : "admin"}>
+                              <div className="flex items-center">
+                                {employee.is_admin ? (
+                                  <>
+                                    <Shield className="w-4 h-4 mr-2 text-gray-500" />
+                                    <span>User</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <ShieldCheck className="w-4 h-4 mr-2 text-green-600" />
+                                    <span>Admin</span>
+                                  </>
+                                )}
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {updatingRoles.has(employee.id) && (
+                          <div className="mt-1 text-xs text-[#282F3B]/60 flex items-center">
+                            <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                            Updating...
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center">
@@ -471,11 +682,45 @@ const Employees = () => {
                           {formatDate(employee.updated_at)}
                         </span>
                       </td>
+                      <td className="px-6 py-4">
+                        <Button
+                          onClick={() => showBlockConfirmation(
+                            employee.id,
+                            `${employee.first_name} ${employee.last_name}`,
+                            employee.is_blocked || false
+                          )}
+                          disabled={blockingUsers.has(employee.id) || loading}
+                          variant={employee.is_blocked ? "default" : "destructive"}
+                          size="sm"
+                          className={`flex items-center gap-2 ${
+                            employee.is_blocked
+                              ? "bg-green-600 hover:bg-green-700 text-white"
+                              : "bg-red-600 hover:bg-red-700 text-white"
+                          }`}
+                        >
+                          {blockingUsers.has(employee.id) ? (
+                            <>
+                              <RefreshCw className="w-3 h-3 animate-spin" />
+                              {employee.is_blocked ? "Unblocking..." : "Blocking..."}
+                            </>
+                          ) : employee.is_blocked ? (
+                            <>
+                              <UserCheck className="w-3 h-3" />
+                              Unblock
+                            </>
+                          ) : (
+                            <>
+                              <Ban className="w-3 h-3" />
+                              Block
+                            </>
+                          )}
+                        </Button>
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center">
+                    <td colSpan={7} className="px-6 py-12 text-center">
                       <div className="text-center">
                         <User className="w-12 h-12 mx-auto mb-4 text-gray-400" />
                         <p className="text-[#282F3B]/70 text-lg">No employees found</p>
@@ -545,6 +790,161 @@ const Employees = () => {
           )}
         </div>
       </div>
+
+      {/* Block/Unblock Confirmation Dialog */}
+      <AlertDialog open={confirmDialog.open} onOpenChange={(open) => {
+        if (!open) {
+          setConfirmDialog({
+            open: false,
+            employeeId: null,
+            employeeName: '',
+            isBlocked: false,
+          });
+        }
+      }}>
+        <AlertDialogContent className="sm:max-w-md bg-white border border-gray-200/60 shadow-xl">
+          <AlertDialogHeader>
+            <div className="flex items-center space-x-3 mb-2">
+              <div className={`p-2 rounded-full ${
+                confirmDialog.isBlocked 
+                  ? "bg-green-100" 
+                  : "bg-red-100"
+              }`}>
+                {confirmDialog.isBlocked ? (
+                  <UserCheck className="w-6 h-6 text-green-600" />
+                ) : (
+                  <Ban className="w-6 h-6 text-red-600" />
+                )}
+              </div>
+              <AlertDialogTitle className="text-lg font-semibold text-[#282F3B]">
+                {confirmDialog.isBlocked ? "Unblock User" : "Block User"}
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-sm text-[#282F3B]/70 leading-relaxed">
+              {confirmDialog.isBlocked ? (
+                <>
+                  Are you sure you want to unblock <strong>{confirmDialog.employeeName}</strong>? 
+                  They will regain access to the system.
+                </>
+              ) : (
+                <>
+                  Are you sure you want to block <strong>{confirmDialog.employeeName}</strong>? 
+                  They will lose access to the system until unblocked.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel 
+              className="w-full sm:w-auto border-[#282F3B]/20 text-[#282F3B] hover:bg-[#282F3B]/5"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (confirmDialog.employeeId !== null) {
+                  handleBlockUser(confirmDialog.employeeId, confirmDialog.isBlocked);
+                }
+              }}
+              className={`w-full sm:w-auto text-white border-0 ${
+                confirmDialog.isBlocked
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-red-600 hover:bg-red-700"
+              }`}
+            >
+              {confirmDialog.isBlocked ? (
+                <>
+                  <UserCheck className="w-4 h-4 mr-2" />
+                  Unblock User
+                </>
+              ) : (
+                <>
+                  <Ban className="w-4 h-4 mr-2" />
+                  Block User
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Role Change Confirmation Dialog */}
+      <AlertDialog open={roleChangeDialog.open} onOpenChange={(open) => {
+        if (!open) {
+          setRoleChangeDialog({
+            open: false,
+            employeeId: null,
+            employeeName: '',
+            currentRole: false,
+            newRole: false,
+          });
+        }
+      }}>
+        <AlertDialogContent className="sm:max-w-md bg-white border border-gray-200/60 shadow-xl">
+          <AlertDialogHeader>
+            <div className="flex items-center space-x-3 mb-2">
+              <div className={`p-2 rounded-full ${
+                roleChangeDialog.newRole 
+                  ? "bg-green-100" 
+                  : "bg-gray-100"
+              }`}>
+                {roleChangeDialog.newRole ? (
+                  <ShieldCheck className="w-6 h-6 text-green-600" />
+                ) : (
+                  <Shield className="w-6 h-6 text-gray-600" />
+                )}
+              </div>
+              <AlertDialogTitle className="text-lg font-semibold text-[#282F3B]">
+                {roleChangeDialog.newRole ? "Grant Admin Access" : "Revoke Admin Access"}
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-sm text-[#282F3B]/70 leading-relaxed">
+              {roleChangeDialog.newRole ? (
+                <>
+                  Are you sure you want to change role access for <strong>{roleChangeDialog.employeeName}</strong> and grant admin access? 
+                  They will have full administrative privileges.
+                </>
+              ) : (
+                <>
+                  Are you sure you want to change role access for <strong>{roleChangeDialog.employeeName}</strong> and revoke admin access? 
+                  They will lose administrative privileges.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel 
+              className="w-full sm:w-auto border-[#282F3B]/20 text-[#282F3B] hover:bg-[#282F3B]/5"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (roleChangeDialog.employeeId !== null) {
+                  handleRoleChange(roleChangeDialog.employeeId, roleChangeDialog.newRole);
+                }
+              }}
+              className={`w-full sm:w-auto text-white border-0 ${
+                roleChangeDialog.newRole
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-gray-600 hover:bg-gray-700"
+              }`}
+            >
+              {roleChangeDialog.newRole ? (
+                <>
+                  <ShieldCheck className="w-4 h-4 mr-2" />
+                  Grant Admin Access
+                </>
+              ) : (
+                <>
+                  <Shield className="w-4 h-4 mr-2" />
+                  Revoke Admin Access
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Chrome, Shield, Users, Zap } from "lucide-react";
+import { Chrome, Shield, Users, Zap, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useGoogleLogin } from '@react-oauth/google';
 import { useDispatch } from 'react-redux';
@@ -10,10 +10,18 @@ import { message } from 'antd';
 import axios from 'axios';
 import OnelabLogo from "../../shared/OnelabLogo";
 
+// Configure Ant Design message
+message.config({
+  top: 100,
+  duration: 5,
+  maxCount: 3,
+});
+
 const Login = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Clear any existing authentication state on component mount
   React.useEffect(() => {
@@ -46,32 +54,145 @@ const Login = () => {
         
         loadingMessage(); // Hide loading message
         
+        // Debug: Log the response to see what we're getting
+        console.log('Google login response:', response?.data);
+        console.log('Response success value:', response?.data?.success);
+        console.log('Response message:', response?.data?.message);
+        
+        // Check for blocked user response first (when API returns success: false with is_blocked: true)
+        if (response?.data?.is_blocked === true) {
+          const errorMessage = response?.data?.message || 'Your account has been blocked. Please contact your administrator for assistance.';
+          console.log('User is blocked, showing error:', errorMessage);
+          message.error(errorMessage, 5); // Show for 5 seconds
+          setIsGoogleLoading(false);
+          return;
+        }
+        
+        // Check if success is false (this handles the case where API returns success: false)
+        // This should catch the response: { success: false, message: "..." }
+        if (response?.data && response.data.success === false) {
+          const errorMessage = response.data.message || 'Login failed. Please try again.';
+          console.log('Login failed (success: false), showing error:', errorMessage);
+          message.error(errorMessage, 5); // Show for 5 seconds
+          setIsGoogleLoading(false);
+          return;
+        }
+        
+        // Also check if response.data exists but doesn't have success or data fields
+        if (response?.data && response.data.success !== true && !response.data.data && response.data.message) {
+          const errorMessage = response.data.message;
+          console.log('Login failed (no success field or success is not true), showing error:', errorMessage);
+          message.error(errorMessage, 5); // Show for 5 seconds
+          setIsGoogleLoading(false);
+          return;
+        }
+        
         if (response?.data?.success && response?.data?.data) {
+          // Check if user is blocked (additional check in case is_blocked is in data.user)
+          const user = response.data.data.user;
+          if (user && user.is_blocked === true) {
+            message.error('Your account has been blocked. Please contact your administrator for assistance.');
+            return;
+          }
+          
           localStorage.setItem('token', response.data.data.access);
           localStorage.setItem('refreshToken', response.data.data.refresh);
           dispatch(setUserFromBackend(response.data));
           message.success('Successfully logged in with Google!');
           navigate('/auth/dashboard');
         } else {
-          message.error('Invalid response from server');
+          // Handle other error cases
+          const errorMessage = response?.data?.message || 'Invalid response from server';
+          message.error(errorMessage);
         }
       } catch (error: any) {
         loadingMessage(); // Hide loading message
         console.error('Google login error:', error);
+        console.error('Error response:', error.response);
+        console.error('Error status:', error.response?.status);
+        console.error('Error data:', error.response?.data);
         
-        if (error.code === 'ECONNABORTED') {
-          message.error('Login request timed out. Please try again.');
-        } else if (error.response?.status === 500) {
-          message.error('Server error. Please try again later.');
-        } else if (error.response?.status === 401) {
-          message.error('Invalid Google token. Please try again.');
-        } else if (error.response?.data?.message) {
-          message.error(error.response.data.message);
-        } else {
-          message.error('Google login failed. Please try again.');
-        }
-      } finally {
+        // Always set loading to false
         setIsGoogleLoading(false);
+        
+        // Check for blocked user in error response
+        if (error.response?.data?.is_blocked === true || error.message?.includes('blocked')) {
+          const errorMsg = error.response?.data?.message || error.message || 'Your account has been blocked. Please contact your administrator for assistance.';
+          console.log('Showing blocked user error:', errorMsg);
+          setErrorMessage(errorMsg);
+          // Use message.destroy() first to clear any existing messages
+          message.destroy();
+          // Then show the error message with explicit configuration
+          setTimeout(() => {
+            message.error(errorMsg, 5);
+          }, 100);
+          return;
+        }
+        
+        // Handle 403 Forbidden - account blocked or access denied
+        if (error.response?.status === 403) {
+          const errorMsg = error.response?.data?.message || 'Your account has been blocked. Please contact your administrator for assistance.';
+          console.log('403 error - showing message:', errorMsg);
+          setErrorMessage(errorMsg);
+          // Use message.destroy() first to clear any existing messages
+          message.destroy();
+          // Then show the error message with explicit configuration
+          setTimeout(() => {
+            message.error(errorMsg, 5);
+          }, 100);
+          return;
+        }
+        
+        // Handle other specific status codes
+        if (error.code === 'ECONNABORTED') {
+          message.destroy();
+          message.error({
+            content: 'Login request timed out. Please try again.',
+            duration: 5,
+            style: { marginTop: '20vh' }
+          });
+        } else if (error.response?.status === 500) {
+          message.destroy();
+          message.error({
+            content: 'Server error. Please try again later.',
+            duration: 5,
+            style: { marginTop: '20vh' }
+          });
+        } else if (error.response?.status === 401) {
+          message.destroy();
+          message.error({
+            content: 'Invalid Google token. Please try again.',
+            duration: 5,
+            style: { marginTop: '20vh' }
+          });
+        } else if (error.response?.data?.message) {
+          // Show the error message from the API response
+          console.log('Showing API error message:', error.response.data.message);
+          message.destroy();
+          message.error({
+            content: error.response.data.message,
+            duration: 5,
+            style: { marginTop: '20vh' }
+          });
+        } else if (error.message) {
+          // Show the error message from the error object
+          console.log('Showing error message:', error.message);
+          message.destroy();
+          message.error({
+            content: error.message,
+            duration: 5,
+            style: { marginTop: '20vh' }
+          });
+        } else {
+          // Fallback error message
+          console.log('Showing fallback error message');
+          message.destroy();
+          message.error({
+            content: 'Google login failed. Please try again.',
+            duration: 5,
+            style: { marginTop: '20vh' }
+          });
+        }
       }
     },
     onError: error => {
@@ -165,9 +286,31 @@ const Login = () => {
               </CardHeader>
               
               <CardContent className="space-y-6 px-8 pb-8">
+                {/* Error Message Display */}
+                {errorMessage && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start space-x-3 animate-in slide-in-from-top-2">
+                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-red-800">{errorMessage}</p>
+                    </div>
+                    <button
+                      onClick={() => setErrorMessage(null)}
+                      className="text-red-600 hover:text-red-800 flex-shrink-0"
+                    >
+                      <span className="sr-only">Close</span>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+                
                 <Button 
                   type="button"
-                  onClick={() => loginWithGoogle()}
+                  onClick={() => {
+                    setErrorMessage(null); // Clear any previous error
+                    loginWithGoogle();
+                  }}
                   size="lg"
                   disabled={isGoogleLoading}
                   className="w-full bg-white border border-gray-200 text-[#282F3B] hover:bg-gray-50 shadow-sm transition-all duration-200 hover:shadow-md h-12 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"

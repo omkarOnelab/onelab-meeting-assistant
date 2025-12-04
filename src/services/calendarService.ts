@@ -76,6 +76,12 @@ interface ApiResponse<T> {
 }
 
 // Service Functions
+// Track active authorization to prevent multiple simultaneous attempts
+let activeAuthorization: {
+  popup: Window | null;
+  cleanup: (() => void) | null;
+} | null = null;
+
 export const calendarService = {
   // Start Google Calendar OAuth flow
   async startCalendarAuthorization(): Promise<ApiResponse<CalendarAuthorizationResponse>> {
@@ -283,8 +289,30 @@ export const calendarService = {
   },
 
   // Open calendar authorization in popup window with proper communication
-  async openCalendarAuthorization(): Promise<void> {
+  async openCalendarAuthorization(retryCount: number = 0): Promise<void> {
     try {
+      // Clean up any existing authorization attempt
+      if (activeAuthorization) {
+        console.log('Cleaning up previous authorization attempt...');
+        if (activeAuthorization.cleanup) {
+          activeAuthorization.cleanup();
+        }
+        if (activeAuthorization.popup && !activeAuthorization.popup.closed) {
+          try {
+            activeAuthorization.popup.close();
+          } catch (e) {
+            // Ignore errors
+          }
+        }
+        activeAuthorization = null;
+      }
+
+      // Validate token before starting authorization
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication required. Please log in again.');
+      }
+
       const response = await this.startCalendarAuthorization();
       if (response.data.authorization_url) {
         return new Promise((resolve, reject) => {
@@ -295,9 +323,49 @@ export const calendarService = {
           );
 
           if (!popup) {
+            activeAuthorization = null;
             reject(new Error('Popup blocked. Please allow popups for this site.'));
             return;
           }
+
+          let isResolved = false;
+          let checkClosedInterval: NodeJS.Timeout | null = null;
+          let timeoutId: NodeJS.Timeout | null = null;
+          let checkPopupUrl: NodeJS.Timeout | null = null;
+
+          // Cleanup function
+          const cleanup = () => {
+            if (checkClosedInterval) {
+              clearInterval(checkClosedInterval);
+              checkClosedInterval = null;
+            }
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+              timeoutId = null;
+            }
+            if (checkPopupUrl) {
+              clearInterval(checkPopupUrl);
+              checkPopupUrl = null;
+            }
+            window.removeEventListener('message', messageListener);
+            if (popup && !popup.closed) {
+              try {
+                popup.close();
+              } catch (e) {
+                // Ignore errors when closing popup
+              }
+            }
+            // Clear active authorization reference
+            if (activeAuthorization && activeAuthorization.popup === popup) {
+              activeAuthorization = null;
+            }
+          };
+
+          // Store active authorization
+          activeAuthorization = {
+            popup,
+            cleanup
+          };
 
           // Listen for messages from the popup
           const messageListener = (event: MessageEvent) => {
@@ -306,34 +374,66 @@ export const calendarService = {
               return;
             }
 
+            if (isResolved) return;
+
             if (event.data.type === 'GOOGLE_CALENDAR_AUTH_SUCCESS') {
-              window.removeEventListener('message', messageListener);
-              popup.close();
+              isResolved = true;
+              cleanup();
               resolve();
             } else if (event.data.type === 'GOOGLE_CALENDAR_AUTH_ERROR') {
-              window.removeEventListener('message', messageListener);
-              popup.close();
+              isResolved = true;
+              cleanup();
               reject(new Error(event.data.error || 'Authorization failed'));
             }
           };
 
           window.addEventListener('message', messageListener);
 
-          // Check if popup is closed manually
-          const checkClosed = setInterval(() => {
-            if (popup.closed) {
-              clearInterval(checkClosed);
-              window.removeEventListener('message', messageListener);
-              reject(new Error('Authorization cancelled by user'));
+          // Monitor popup URL for errors (check every 500ms)
+          checkPopupUrl = setInterval(() => {
+            if (isResolved || !popup || popup.closed) {
+              if (checkPopupUrl) {
+                clearInterval(checkPopupUrl);
+                checkPopupUrl = null;
+              }
+              return;
             }
-          }, 1000);
+
+            try {
+              // Try to access popup location (may fail due to cross-origin)
+              const popupUrl = popup.location.href;
+              
+              // Check for error parameters in URL
+              if (popupUrl.includes('error=') || popupUrl.includes('error_code=')) {
+                const urlParams = new URLSearchParams(popupUrl.split('?')[1] || '');
+                const error = urlParams.get('error') || urlParams.get('error_code') || 'Unknown error';
+                const errorDescription = urlParams.get('error_description') || '';
+                
+                isResolved = true;
+                cleanup();
+                reject(new Error(`Authorization failed: ${error}${errorDescription ? ` - ${errorDescription}` : ''}`));
+              }
+            } catch (e) {
+              // Cross-origin error - this is expected for Google OAuth
+              // Continue monitoring
+            }
+          }, 500);
+
+          // Check if popup is closed manually or unexpectedly
+          // Check immediately and frequently to catch closures quickly
+          checkClosedInterval = setInterval(() => {
+            if (popup.closed && !isResolved) {
+              isResolved = true;
+              cleanup();
+              reject(new Error('Authorization cancelled by user or failed unexpectedly. Please try again.'));
+            }
+          }, 300);
 
           // Clean up after 10 minutes
-          setTimeout(() => {
-            if (!popup.closed) {
-              clearInterval(checkClosed);
-              window.removeEventListener('message', messageListener);
-              popup.close();
+          timeoutId = setTimeout(() => {
+            if (!isResolved && popup && !popup.closed) {
+              isResolved = true;
+              cleanup();
               reject(new Error('Authorization timeout'));
             }
           }, 600000);
@@ -341,8 +441,43 @@ export const calendarService = {
       } else {
         throw new Error('No authorization URL received');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error opening calendar authorization:', error);
+      
+      // Clear active authorization on error
+      if (activeAuthorization) {
+        if (activeAuthorization.cleanup) {
+          activeAuthorization.cleanup();
+        }
+        activeAuthorization = null;
+      }
+      
+      // If it's a 401 error, try to refresh token and retry once (max 1 retry)
+      if ((error.response?.status === 401 || error.message?.includes('401') || error.message?.includes('unauthorized')) && retryCount === 0) {
+        try {
+          const refreshToken = localStorage.getItem('refreshToken');
+          if (refreshToken) {
+            console.log('Token expired, attempting refresh...');
+            const refreshResponse = await axios.post(`${API_BASE_URL}/auth/refresh/`, {
+              refresh: refreshToken
+            });
+
+            const { access } = refreshResponse.data;
+            localStorage.setItem('token', access);
+            
+            // Retry the authorization once
+            console.log('Token refreshed, retrying authorization...');
+            return this.openCalendarAuthorization(1);
+          }
+        } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError);
+          // Clear tokens if refresh fails
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          throw new Error('Session expired. Please log in again.');
+        }
+      }
+      
       throw error;
     }
   }
