@@ -1,6 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+// import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, ArrowUpRight, Loader2, RefreshCw } from "lucide-react";
+// import { Calendar, Clock, ArrowUpRight, Loader2, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useEffect } from "react";
 import { message } from "antd";
@@ -11,7 +12,8 @@ import { useDashboard } from "@/hooks/useDashboard";
 const DashboardHome = () => {
   const [searchParams] = useSearchParams();
   const { getUserFullName, user } = useAuth();
-  const { dashboardData, loading, refreshing, error, refetch } = useDashboard();
+  // const { dashboardData, loading, refreshing, error, refetch } = useDashboard();
+  const { loading, refreshing, error, refetch } = useDashboard();
 
   // Check for calendar connection success
   useEffect(() => {
@@ -24,31 +26,31 @@ const DashboardHome = () => {
   }, [searchParams]);
 
   // Use dynamic data from API or fallback to empty data
-  const stats = dashboardData?.stats || [
-    {
-      title: "Total Meetings",
-      value: "0",
-      change: "0%",
-      trend: "stable" as const,
-      icon: "Calendar",
-      period: "this month"
-    },
-    {
-      title: "Avg Duration",
-      value: "0 min",
-      change: "0%",
-      trend: "stable" as const,
-      icon: "Clock",
-      period: "this month"
-    },
-  ];
+  // const stats = dashboardData?.stats || [
+  //   {
+  //     title: "Total Meetings",
+  //     value: "0",
+  //     change: "0%",
+  //     trend: "stable" as const,
+  //     icon: "Calendar",
+  //     period: "this month"
+  //   },
+  //   {
+  //     title: "Avg Duration",
+  //     value: "0 min",
+  //     change: "0%",
+  //     trend: "stable" as const,
+  //     icon: "Clock",
+  //     period: "this month"
+  //   },
+  // ];
 
-  const weeklySummary = dashboardData?.weekly_summary || {
-    meetings_completed: 0,
-    total_hours: "0h",
-    action_items_created: 0,
-    transcripts_processed: 0
-  };
+  // const weeklySummary = dashboardData?.weekly_summary || {
+  //   meetings_completed: 0,
+  //   total_hours: "0h",
+  //   action_items_created: 0,
+  //   transcripts_processed: 0
+  // };
 
   return (
     <div className="min-h-screen bg-surface">
@@ -94,7 +96,7 @@ const DashboardHome = () => {
           <CalendarIntegration />
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats Grid
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {loading ? (
             // Loading state
@@ -154,10 +156,10 @@ const DashboardHome = () => {
               );
             })
           )}
-        </div>
+        </div> */}
 
         {/* Weekly Summary */}
-        <div className="max-w-md">
+        {/* <div className="max-w-md">
           <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-0 shadow-card">
             <CardHeader>
               <CardTitle className="text-lg font-semibold text-foreground">This Week</CardTitle>
@@ -195,7 +197,7 @@ const DashboardHome = () => {
               </div>
             </CardContent>
           </Card>
-        </div>
+        </div> */}
       </div>
     </div>
   );

@@ -183,7 +183,8 @@ const DashboardHeader = () => {
           icon={isCheckingCalendar || calendarLoading ? <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-[#078586]"></div> : <Plus size={16} />}
           onClick={handleAddExtension}
           loading={isCheckingCalendar || calendarLoading}
-          disabled={isCheckingCalendar || calendarLoading}
+          // disabled={isCheckingCalendar || calendarLoading}
+          disabled={true}
         >
           {isCheckingCalendar 
             ? 'Checking...' 
