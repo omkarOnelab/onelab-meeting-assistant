@@ -8,6 +8,7 @@ import DashboardHome from "./pages/auth/dashboard/DashboardHome";
 import Meetings from "./pages/auth/dashboard/Meetings";
 import MeetingDetail from "./pages/auth/dashboard/MeetingDetails";
 import Employees from "./pages/auth/dashboard/Employees";
+import Report from "./pages/auth/dashboard/Report";
 
 export const router = createBrowserRouter([
   {
@@ -41,6 +42,10 @@ export const router = createBrowserRouter([
           {
             path: "employees",
             element: <Employees />,
+          },
+          {
+            path: "report",
+            element: <Report />,
           },
         ],
       },

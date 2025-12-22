@@ -1,4 +1,4 @@
-import { Calendar, Users, Home, UserCheck } from "lucide-react";
+import { Calendar, Users, Home, UserCheck, FileText } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../../redux/store';
@@ -15,6 +15,7 @@ const AppSidebar = () => {
     { name: "All Meetings", href: "/auth/meetings?view=all", icon: Users },
     { name: "My Meetings", href: "/auth/meetings?view=my", icon: Calendar },
     { name: "Employees", href: "/auth/employees", icon: UserCheck },
+    { name: "Report", href: "/auth/report", icon: FileText },
   ];
 
   const isActive = (href: string) => {
