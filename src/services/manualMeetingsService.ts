@@ -51,6 +51,17 @@ api.interceptors.response.use(
 );
 
 // Types based on API documentation
+export interface CreatedByUser {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  sign_up_type: string;
+  is_admin: boolean;
+  is_blocked: boolean;
+}
+
 export interface ManualMeeting {
   id?: number;
   was_scheduled_on_calendar: boolean;
@@ -61,6 +72,7 @@ export interface ManualMeeting {
   comments?: Record<string, any>; // JSON object
   status?: string; // pending/scheduled/in_progress/completed/cancelled
   created_by?: number;
+  created_by_user?: CreatedByUser;
   calendar_meeting_id?: number | null;
   created_at?: string;
   updated_at?: string;
@@ -78,7 +90,7 @@ export interface CreateManualMeetingRequest {
   user_id: number;
   status?: string;
   calendar_meeting_id?: number | null;
-}
+}                                                                                                       
 
 export interface UpdateManualMeetingRequest {
   was_scheduled_on_calendar?: boolean;

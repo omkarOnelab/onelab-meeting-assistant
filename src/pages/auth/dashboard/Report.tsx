@@ -27,6 +27,7 @@ import {
   Loader2,
   Filter,
   X,
+  User,
 } from "lucide-react";
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../../redux/store';
@@ -40,6 +41,7 @@ import { message } from "antd";
 
 const Report = () => {
   const { user } = useSelector((state: RootState) => state.auth);
+  const isAdmin = user?.is_admin || false;
   const [meetings, setMeetings] = useState<ManualMeeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -88,7 +90,9 @@ const Report = () => {
 
   // Fetch meetings from API with server-side filtering
   const fetchMeetings = async (page: number, filtersToApply?: ManualMeetingFilters) => {
-    const userId = user?.id;
+    // If admin, don't pass user_id (to get all meetings)
+    // If not admin, pass user_id (to get only their meetings)
+    const userId = isAdmin ? undefined : user?.id;
     const activeFilters = filtersToApply || appliedFilters;
     
     // Check if we're already fetching with the same parameters
@@ -132,7 +136,7 @@ const Report = () => {
       const response = await manualMeetingsService.listManualMeetings(
         page,
         pageSize,
-        userId,
+        userId, // Will be undefined for admin, user_id for non-admin
         cleanFilters
       );
 
@@ -571,7 +575,7 @@ const Report = () => {
                 className="bg-[#078586] hover:bg-[#078586]/90 text-white px-4 py-2 rounded-lg transition-all duration-200 text-sm flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" />
-                Create Meeting
+                Create
               </Button>
             </div>
           </div>
@@ -695,6 +699,7 @@ const Report = () => {
                     <thead className="bg-gradient-to-r from-gray-50 to-gray-100/50 border-b border-gray-200/60">
                       <tr>
                         {/* <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Title</th> */}
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Name</th>
                         <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Meet Link</th>
                         <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Schedule Date</th>
                         <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Start Time</th>
@@ -707,7 +712,7 @@ const Report = () => {
                     <tbody className="divide-y divide-gray-200/60">
                       {meetings.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="px-6 py-12 text-center">
+                          <td colSpan={7} className="px-6 py-12 text-center">
                             <p className="text-muted-foreground">No meetings found</p>
                           </td>
                         </tr>
@@ -722,6 +727,14 @@ const Report = () => {
                                 {meeting.meeting_title || "Untitled Meeting"}
                               </div>
                             </td> */}
+                            <td className="px-6 py-4">
+                              <div className="flex items-center">
+                                <User className="w-4 h-4 mr-2 text-[#078586]" />
+                                <span className="text-sm font-medium text-[#282F3B]">
+                                  {meeting.created_by_user?.full_name || "Unknown User"}
+                                </span>
+                              </div>
+                            </td>
                             <td className="px-6 py-4">
                               <div className="flex items-center">
                                 <LinkIcon className="w-4 h-4 mr-2 text-[#078586]" />
