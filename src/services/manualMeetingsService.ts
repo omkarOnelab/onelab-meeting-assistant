@@ -14,6 +14,20 @@ const api = axios.create({
   },
 });
 
+// Helper to build API path (handles cases where baseURL may or may not include /api)
+const getApiPath = (path: string): string => {
+  // If path already starts with /api/, use it as is
+  if (path.startsWith('/api/')) {
+    return path;
+  }
+  // If baseURL ends with /api, don't add /api/ again
+  if (API_BASE_URL.endsWith('/api')) {
+    return path.startsWith('/') ? path : `/${path}`;
+  }
+  // Otherwise, add /api/ prefix
+  return path.startsWith('/') ? `/api${path}` : `/api/${path}`;
+};
+
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
@@ -101,7 +115,7 @@ export const createManualMeeting = async (
   data: CreateManualMeetingRequest
 ): Promise<ApiResponse<ManualMeeting>> => {
   try {
-    const response = await api.post('/manual-meetings/', data);
+    const response = await api.post(getApiPath('/manual-meetings/'), data);
     return {
       success: true,
       data: response.data,
@@ -123,7 +137,7 @@ export const getManualMeeting = async (
   id: number
 ): Promise<ApiResponse<ManualMeeting>> => {
   try {
-    const response = await api.get(`/manual-meetings/${id}/`);
+    const response = await api.get(getApiPath(`/manual-meetings/${id}/`));
     return {
       success: true,
       data: response.data,
@@ -136,14 +150,27 @@ export const getManualMeeting = async (
   }
 };
 
+export interface ManualMeetingFilters {
+  search_link?: string;
+  start_date?: string; // YYYY-MM-DD
+  end_date?: string; // YYYY-MM-DD
+  start_datetime?: string; // ISO 8601
+  end_datetime?: string; // ISO 8601
+  was_scheduled_on_calendar?: boolean;
+  only_upcoming?: boolean;
+  only_past?: boolean;
+  order_by?: string;
+}
+
 /**
- * List all manual meetings with pagination
- * GET /api/manual-meetings/?page=1&page_size=20&user_id=1
+ * List all manual meetings with pagination and filters
+ * GET /api/manual-meetings/?page=1&page_size=20&user_id=1&search_link=abc&start_date=2025-12-01
  */
 export const listManualMeetings = async (
   page: number = 1,
   pageSize: number = 20,
-  userId?: number
+  userId?: number,
+  filters?: ManualMeetingFilters
 ): Promise<ApiResponse<ManualMeetingsListResponse>> => {
   try {
     const params: any = {
@@ -154,7 +181,38 @@ export const listManualMeetings = async (
       params.user_id = userId;
     }
 
-    const response = await api.get('/manual-meetings/', { params });
+    // Add filter parameters
+    if (filters) {
+      if (filters.search_link) {
+        params.search_link = filters.search_link;
+      }
+      if (filters.start_date) {
+        params.start_date = filters.start_date;
+      }
+      if (filters.end_date) {
+        params.end_date = filters.end_date;
+      }
+      if (filters.start_datetime) {
+        params.start_datetime = filters.start_datetime;
+      }
+      if (filters.end_datetime) {
+        params.end_datetime = filters.end_datetime;
+      }
+      if (filters.was_scheduled_on_calendar !== undefined) {
+        params.was_scheduled_on_calendar = filters.was_scheduled_on_calendar;
+      }
+      if (filters.only_upcoming) {
+        params.only_upcoming = 'true';
+      }
+      if (filters.only_past) {
+        params.only_past = 'true';
+      }
+      if (filters.order_by) {
+        params.order_by = filters.order_by;
+      }
+    }
+
+    const response = await api.get(getApiPath('/manual-meetings/'), { params });
     return {
       success: true,
       data: response.data,
@@ -176,7 +234,7 @@ export const updateManualMeeting = async (
   data: UpdateManualMeetingRequest
 ): Promise<ApiResponse<ManualMeeting>> => {
   try {
-    const response = await api.put(`/manual-meetings/${id}/`, data);
+    const response = await api.put(getApiPath(`/manual-meetings/${id}/`), data);
     return {
       success: true,
       data: response.data,
@@ -198,7 +256,7 @@ export const deleteManualMeeting = async (
   id: number
 ): Promise<ApiResponse<{ message: string }>> => {
   try {
-    const response = await api.delete(`/manual-meetings/${id}/`);
+    const response = await api.delete(getApiPath(`/manual-meetings/${id}/`));
     return {
       success: true,
       data: response.data,

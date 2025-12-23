@@ -15,7 +15,7 @@ const AppSidebar = () => {
     { name: "All Meetings", href: "/auth/meetings?view=all", icon: Users },
     { name: "My Meetings", href: "/auth/meetings?view=my", icon: Calendar },
     { name: "Employees", href: "/auth/employees", icon: UserCheck },
-    { name: "Report", href: "/auth/report", icon: FileText },
+    { name: "Issue Report", href: "/auth/report", icon: FileText },
   ];
 
   const isActive = (href: string) => {

@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  Filter,
+  X,
 } from "lucide-react";
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../../redux/store';
@@ -32,6 +35,7 @@ import manualMeetingsService, {
   type ManualMeeting,
   type CreateManualMeetingRequest,
   type UpdateManualMeetingRequest,
+  type ManualMeetingFilters,
 } from "@/services/manualMeetingsService";
 import { message } from "antd";
 
@@ -43,9 +47,20 @@ const Report = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalMeetings, setTotalMeetings] = useState(0);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [appliedSearchTerm, setAppliedSearchTerm] = useState("");
   const pageSize = 10;
+  
+  // Filter states - only for visible table fields
+  const [filters, setFilters] = useState<ManualMeetingFilters>({
+    search_link: "",
+    end_date: "",
+    was_scheduled_on_calendar: undefined,
+  });
+  const [appliedFilters, setAppliedFilters] = useState<ManualMeetingFilters>({});
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  
+  // Ref to prevent duplicate API calls
+  const isFetchingRef = useRef(false);
+  const lastFetchParamsRef = useRef<{ page: number; userId: number | undefined; filters: ManualMeetingFilters } | null>(null);
 
   // Dialog states
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -53,6 +68,12 @@ const Report = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<ManualMeeting | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState<{
+    meet_link?: string;
+    meeting_schedule_date?: string;
+    meeting_start_time?: string;
+  }>({});
+  const [commentsText, setCommentsText] = useState<string>("");
 
   // Form states
   const [formData, setFormData] = useState<CreateManualMeetingRequest>({
@@ -66,33 +87,58 @@ const Report = () => {
     status: "scheduled",
   });
 
-  // Fetch meetings from API
-  const fetchMeetings = async (page: number) => {
+  // Fetch meetings from API with server-side filtering
+  const fetchMeetings = async (page: number, filtersToApply?: ManualMeetingFilters) => {
+    const userId = user?.id;
+    const activeFilters = filtersToApply || appliedFilters;
+    
+    // Check if we're already fetching with the same parameters
+    const fetchParams = { page, userId, filters: activeFilters };
+    const filtersKey = JSON.stringify(activeFilters);
+    const lastFiltersKey = lastFetchParamsRef.current 
+      ? JSON.stringify(lastFetchParamsRef.current.filters) 
+      : null;
+    
+    if (
+      isFetchingRef.current ||
+      (lastFetchParamsRef.current &&
+        lastFetchParamsRef.current.page === fetchParams.page &&
+        lastFetchParamsRef.current.userId === fetchParams.userId &&
+        lastFiltersKey === filtersKey)
+    ) {
+      return;
+    }
+
+    isFetchingRef.current = true;
+    lastFetchParamsRef.current = fetchParams;
+
     try {
       setLoading(true);
       setError(null);
 
-      const userId = user?.id;
+      // Prepare filters - only include non-empty values
+      const cleanFilters: ManualMeetingFilters = {};
+      if (activeFilters.search_link?.trim()) {
+        cleanFilters.search_link = activeFilters.search_link.trim();
+      }
+      if (activeFilters.end_date) {
+        cleanFilters.end_date = activeFilters.end_date;
+      }
+      if (activeFilters.was_scheduled_on_calendar !== undefined) {
+        cleanFilters.was_scheduled_on_calendar = activeFilters.was_scheduled_on_calendar;
+      }
+      // Default sorting by meeting start time (newest first)
+      cleanFilters.order_by = '-meeting_start_time';
+
       const response = await manualMeetingsService.listManualMeetings(
         page,
         pageSize,
-        userId
+        userId,
+        cleanFilters
       );
 
       if (response.success && response.data) {
-        let filteredResults = response.data.results;
-
-        // Client-side search filtering
-        if (appliedSearchTerm) {
-          const searchLower = appliedSearchTerm.toLowerCase();
-          filteredResults = filteredResults.filter((meeting) =>
-            meeting.meeting_title?.toLowerCase().includes(searchLower) ||
-            meeting.meet_link?.toLowerCase().includes(searchLower) ||
-            meeting.status?.toLowerCase().includes(searchLower)
-          );
-        }
-
-        setMeetings(filteredResults);
+        setMeetings(response.data.results);
         setTotalMeetings(response.data.count);
         setTotalPages(Math.ceil(response.data.count / pageSize));
       } else {
@@ -103,14 +149,27 @@ const Report = () => {
       setError('Failed to fetch meetings');
     } finally {
       setLoading(false);
+      // Only reset fetching flag after a small delay to prevent rapid duplicate calls
+      setTimeout(() => {
+        isFetchingRef.current = false;
+      }, 100);
     }
   };
 
+  // Effect for fetching data (server-side pagination or initial search fetch)
   useEffect(() => {
     if (user?.id) {
-      fetchMeetings(currentPage);
+      // Use a small delay to prevent duplicate calls from React StrictMode
+      const timeoutId = setTimeout(() => {
+        fetchMeetings(currentPage, appliedFilters);
+      }, 0);
+
+      return () => {
+        clearTimeout(timeoutId);
+        isFetchingRef.current = false;
+      };
     }
-  }, [currentPage, user?.id, appliedSearchTerm]);
+  }, [currentPage, user?.id, appliedFilters]);
 
   // Handle Create
   const handleCreate = () => {
@@ -124,6 +183,8 @@ const Report = () => {
       user_id: user?.id || 0,
       status: "scheduled",
     });
+    setCommentsText("");
+    setFormErrors({}); // Clear errors when opening dialog
     setSelectedMeeting(null);
     setIsCreateDialogOpen(true);
   };
@@ -131,11 +192,31 @@ const Report = () => {
   // Handle Edit
   const handleEdit = (meeting: ManualMeeting) => {
     setSelectedMeeting(meeting);
+    // Convert comments object to text for editing
+    // If comments is an object, try to extract text or stringify it
+    let commentsString = "";
+    if (meeting.comments) {
+      if (typeof meeting.comments === 'string') {
+        commentsString = meeting.comments;
+      } else if (typeof meeting.comments === 'object') {
+        // If it has a 'text' or 'note' key, use that, otherwise stringify
+        if ('text' in meeting.comments && typeof meeting.comments.text === 'string') {
+          commentsString = meeting.comments.text;
+        } else if ('note' in meeting.comments && typeof meeting.comments.note === 'string') {
+          commentsString = meeting.comments.note;
+        } else {
+          // Try to get the first string value
+          const firstValue = Object.values(meeting.comments)[0];
+          commentsString = typeof firstValue === 'string' ? firstValue : JSON.stringify(meeting.comments);
+        }
+      }
+    }
+    setCommentsText(commentsString);
     setFormData({
       was_scheduled_on_calendar: meeting.was_scheduled_on_calendar,
       meet_link: meeting.meet_link,
       meeting_schedule_date: meeting.meeting_schedule_date,
-      meeting_start_time: meeting.meeting_start_time,
+      meeting_start_time: isoToDatetimeLocal(meeting.meeting_start_time),
       meeting_title: meeting.meeting_title || "",
       comments: meeting.comments || {},
       user_id: meeting.created_by || user?.id || 0,
@@ -151,20 +232,76 @@ const Report = () => {
     setIsDeleteDialogOpen(true);
   };
 
+  // Validate form fields
+  const validateForm = (): boolean => {
+    const errors: {
+      meet_link?: string;
+      meeting_schedule_date?: string;
+      meeting_start_time?: string;
+    } = {};
+
+    if (!formData.meet_link || !formData.meet_link.trim()) {
+      errors.meet_link = "Meet Link is required";
+    }
+
+    if (!formData.meeting_schedule_date || !formData.meeting_schedule_date.trim()) {
+      errors.meeting_schedule_date = "Schedule Date is required";
+    }
+
+    if (!formData.meeting_start_time || !formData.meeting_start_time.trim()) {
+      errors.meeting_start_time = "Start Time is required";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   // Submit Create
   const handleSubmitCreate = async () => {
-    if (!formData.meet_link || !formData.meeting_schedule_date || !formData.meeting_start_time) {
+    // Validate form before submitting
+    if (!validateForm()) {
       message.error("Please fill in all required fields");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const response = await manualMeetingsService.createManualMeeting(formData);
+      // Convert comments text to JSON object
+      // If user enters plain text, wrap it in a simple object
+      let commentsObj: Record<string, any> = {};
+      if (commentsText && commentsText.trim()) {
+        // Try to parse as JSON first, if it fails, treat as plain text
+        try {
+          const parsed = JSON.parse(commentsText);
+          // If it's already a valid JSON object, use it
+          if (typeof parsed === 'object' && parsed !== null) {
+            commentsObj = parsed;
+          } else {
+            // If it's a JSON primitive, wrap it
+            commentsObj = { text: parsed };
+          }
+        } catch (e) {
+          // Not valid JSON, treat as plain text and wrap it
+          commentsObj = { text: commentsText.trim() };
+        }
+      }
+
+      // Convert datetime-local to ISO 8601
+      const submitData = {
+        ...formData,
+        meeting_start_time: datetimeLocalToIso(formData.meeting_start_time),
+        comments: commentsObj,
+      };
+      const response = await manualMeetingsService.createManualMeeting(submitData);
       if (response.success) {
         message.success("Meeting created successfully");
         setIsCreateDialogOpen(false);
-        fetchMeetings(currentPage);
+        setFormErrors({}); // Clear errors on success
+        setCommentsText(""); // Clear comments field
+        // Reset to first page and refresh table
+        setCurrentPage(1);
+        lastFetchParamsRef.current = null; // Force refresh
+        fetchMeetings(1, appliedFilters);
       } else {
         message.error(response.error || "Failed to create meeting");
       }
@@ -181,13 +318,34 @@ const Report = () => {
 
     setIsSubmitting(true);
     try {
+      // Convert comments text to JSON object
+      // If user enters plain text, wrap it in a simple object
+      let commentsObj: Record<string, any> = {};
+      if (commentsText && commentsText.trim()) {
+        // Try to parse as JSON first, if it fails, treat as plain text
+        try {
+          const parsed = JSON.parse(commentsText);
+          // If it's already a valid JSON object, use it
+          if (typeof parsed === 'object' && parsed !== null) {
+            commentsObj = parsed;
+          } else {
+            // If it's a JSON primitive, wrap it
+            commentsObj = { text: parsed };
+          }
+        } catch (e) {
+          // Not valid JSON, treat as plain text and wrap it
+          commentsObj = { text: commentsText.trim() };
+        }
+      }
+
+      // Convert datetime-local to ISO 8601
       const updateData: UpdateManualMeetingRequest = {
         was_scheduled_on_calendar: formData.was_scheduled_on_calendar,
         meet_link: formData.meet_link,
         meeting_schedule_date: formData.meeting_schedule_date,
-        meeting_start_time: formData.meeting_start_time,
+        meeting_start_time: datetimeLocalToIso(formData.meeting_start_time),
         meeting_title: formData.meeting_title,
-        comments: formData.comments,
+        comments: commentsObj,
         status: formData.status,
         calendar_meeting_id: formData.calendar_meeting_id,
       };
@@ -199,7 +357,10 @@ const Report = () => {
       if (response.success) {
         message.success("Meeting updated successfully");
         setIsEditDialogOpen(false);
-        fetchMeetings(currentPage);
+        setCommentsText(""); // Clear comments field
+        // Clear cache and refresh table to show updated data
+        lastFetchParamsRef.current = null; // Force refresh by clearing cache
+        fetchMeetings(currentPage, appliedFilters);
       } else {
         message.error(response.error || "Failed to update meeting");
       }
@@ -220,7 +381,9 @@ const Report = () => {
       if (response.success) {
         message.success("Meeting deleted successfully");
         setIsDeleteDialogOpen(false);
-        fetchMeetings(currentPage);
+        // Clear cache and refresh table to show updated data
+        lastFetchParamsRef.current = null; // Force refresh by clearing cache
+        fetchMeetings(currentPage, appliedFilters);
       } else {
         message.error(response.error || "Failed to delete meeting");
       }
@@ -231,16 +394,34 @@ const Report = () => {
     }
   };
 
-  // Search handlers
-  const handleApplySearch = () => {
-    setAppliedSearchTerm(searchTerm);
-    setCurrentPage(1);
+  // Filter handlers
+  const handleApplyFilters = () => {
+    setAppliedFilters({ ...filters });
+    setCurrentPage(1); // Reset to first page when applying filters
+    setIsFilterOpen(false);
+    // Clear the last fetch params to force a new fetch
+    lastFetchParamsRef.current = null;
   };
 
-  const handleClearSearch = () => {
-    setSearchTerm("");
-    setAppliedSearchTerm("");
-    setCurrentPage(1);
+  const handleClearFilters = () => {
+    const emptyFilters: ManualMeetingFilters = {
+      search_link: "",
+      end_date: "",
+      was_scheduled_on_calendar: undefined,
+    };
+    setFilters(emptyFilters);
+    setAppliedFilters(emptyFilters);
+    setCurrentPage(1); // Reset to first page when clearing filters
+    // Clear the last fetch params to force a new fetch
+    lastFetchParamsRef.current = null;
+  };
+
+  const hasActiveFilters = () => {
+    return !!(
+      appliedFilters.search_link?.trim() ||
+      appliedFilters.end_date ||
+      appliedFilters.was_scheduled_on_calendar !== undefined
+    );
   };
 
   // Pagination handlers
@@ -285,6 +466,59 @@ const Report = () => {
     }
   };
 
+  // Format comments for display
+  const formatComments = (comments: Record<string, any> | undefined): string => {
+    if (!comments || Object.keys(comments).length === 0) {
+      return "-";
+    }
+    
+    // If it's a simple object with 'text' key, show that
+    if ('text' in comments && typeof comments.text === 'string') {
+      return comments.text;
+    }
+    
+    // If it's a simple object with 'note' key, show that
+    if ('note' in comments && typeof comments.note === 'string') {
+      return comments.note;
+    }
+    
+    // Otherwise, try to get the first string value
+    const firstValue = Object.values(comments)[0];
+    if (typeof firstValue === 'string') {
+      return firstValue;
+    }
+    
+    // If all else fails, stringify the object
+    return JSON.stringify(comments);
+  };
+
+  // Convert ISO 8601 to datetime-local format (YYYY-MM-DDTHH:mm)
+  const isoToDatetimeLocal = (isoString: string): string => {
+    try {
+      const date = new Date(isoString);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    } catch {
+      return '';
+    }
+  };
+
+  // Convert datetime-local format to ISO 8601
+  const datetimeLocalToIso = (localString: string): string => {
+    if (!localString) return '';
+    try {
+      // datetime-local gives us "YYYY-MM-DDTHH:mm", we need to convert to ISO 8601
+      const date = new Date(localString);
+      return date.toISOString();
+    } catch {
+      return localString;
+    }
+  };
+
   return (
     <div className="flex-1 min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
       <div className="max-w-7xl mx-auto">
@@ -295,42 +529,40 @@ const Report = () => {
               <h1 className="text-2xl font-semibold text-foreground">Report</h1>
               <p className="text-sm text-muted-foreground mt-1">
                 {totalMeetings} manual meetings found
-                {appliedSearchTerm && (
+                {hasActiveFilters() && (
                   <span className="ml-2 text-[#078586] font-medium">
-                    (filtered by "{appliedSearchTerm}")
+                    (filters applied)
                   </span>
                 )}
               </p>
             </div>
 
             <div className="flex items-center space-x-3">
-              {/* Search */}
-              <div className="relative w-80 max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#078586] w-4 h-4 z-10" />
-                <Input
-                  placeholder="Search meetings..."
-                  className="pl-10 pr-4 py-2 bg-white/90 backdrop-blur-sm border-2 border-gray-200/60 rounded-lg shadow-md focus:border-[#078586] focus:ring-2 focus:ring-[#078586]/20 transition-all duration-200 text-sm"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      handleApplySearch();
-                    }
-                  }}
-                />
-              </div>
+              {/* Filter Button */}
               <Button
-                onClick={handleApplySearch}
-                className="bg-[#078586] hover:bg-[#078586]/90 text-white px-4 py-2 rounded-lg transition-all duration-200 text-sm"
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                variant={hasActiveFilters() ? "default" : "outline"}
+                className={`${
+                  hasActiveFilters()
+                    ? "bg-[#078586] hover:bg-[#078586]/90 text-white"
+                    : "border-2 border-gray-200/60 hover:border-[#078586] hover:bg-[#078586]/10 text-[#282F3B] hover:text-[#078586]"
+                } px-4 py-2 rounded-lg transition-all duration-200 text-sm flex items-center gap-2`}
               >
-                Apply
+                <Filter className="w-4 h-4" />
+                Filters
+                {hasActiveFilters() && (
+                  <span className="ml-1 bg-white/20 px-1.5 py-0.5 rounded text-xs">
+                    Active
+                  </span>
+                )}
               </Button>
-              {appliedSearchTerm && (
+              {hasActiveFilters() && (
                 <Button
-                  onClick={handleClearSearch}
+                  onClick={handleClearFilters}
                   variant="outline"
-                  className="border-2 border-gray-200/60 hover:border-[#078586] hover:bg-[#078586]/10 text-[#282F3B] hover:text-[#078586] px-4 py-2 rounded-lg transition-all duration-200 text-sm"
+                  className="border-2 border-gray-200/60 hover:border-[#078586] hover:bg-[#078586]/10 text-[#282F3B] hover:text-[#078586] px-4 py-2 rounded-lg transition-all duration-200 text-sm flex items-center gap-2"
                 >
+                  <X className="w-4 h-4" />
                   Clear
                 </Button>
               )}
@@ -345,6 +577,89 @@ const Report = () => {
             </div>
           </div>
         </div>
+
+        {/* Filter Panel */}
+        {isFilterOpen && (
+          <div className="px-8 py-4 bg-white/90 backdrop-blur-sm border-b border-gray-200/60 shadow-md">
+            <div className="max-w-4xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Meet Link Filter */}
+                <div className="grid gap-2">
+                  <Label htmlFor="filter_meet_link" className="text-sm font-medium">
+                    Meet Link
+                  </Label>
+                  <Input
+                    id="filter_meet_link"
+                    placeholder="Search in meet link..."
+                    className="bg-white border-2 border-gray-200/60 rounded-lg focus:border-[#078586] focus:ring-2 focus:ring-[#078586]/20 transition-all duration-200 text-sm"
+                    value={filters.search_link || ""}
+                    onChange={(e) => setFilters({ ...filters, search_link: e.target.value })}
+                  />
+                </div>
+
+                {/* Schedule Date To */}
+                <div className="grid gap-2">
+                  <Label htmlFor="filter_end_date" className="text-sm font-medium">
+                    Schedule Date To
+                  </Label>
+                  <Input
+                    id="filter_end_date"
+                    type="date"
+                    className="bg-white border-2 border-gray-200/60 rounded-lg focus:border-[#078586] focus:ring-2 focus:ring-[#078586]/20 transition-all duration-200 text-sm"
+                    value={filters.end_date || ""}
+                    onChange={(e) => setFilters({ ...filters, end_date: e.target.value })}
+                  />
+                </div>
+
+                {/* On Calendar Filter */}
+                <div className="grid gap-2">
+                  <Label className="text-sm font-medium">On Calendar</Label>
+                  <select
+                    className="flex h-10 w-full rounded-md border-2 border-gray-200/60 bg-white px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#078586]/20 focus-visible:border-[#078586] transition-all duration-200"
+                    value={
+                      filters.was_scheduled_on_calendar === undefined
+                        ? "all"
+                        : filters.was_scheduled_on_calendar
+                        ? "true"
+                        : "false"
+                    }
+                    onChange={(e) =>
+                      setFilters({
+                        ...filters,
+                        was_scheduled_on_calendar:
+                          e.target.value === "all" ? undefined : e.target.value === "true",
+                      })
+                    }
+                  >
+                    <option value="all">All</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Apply/Cancel Buttons */}
+              <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-gray-200/60">
+                <Button
+                  onClick={() => {
+                    setIsFilterOpen(false);
+                    setFilters({ ...appliedFilters });
+                  }}
+                  variant="outline"
+                  className="border-2 border-gray-200/60 hover:border-[#078586] hover:bg-[#078586]/10 text-[#282F3B] hover:text-[#078586] px-4 py-2 rounded-lg transition-all duration-200 text-sm"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleApplyFilters}
+                  className="bg-[#078586] hover:bg-[#078586]/90 text-white px-4 py-2 rounded-lg transition-all duration-200 text-sm"
+                >
+                  Apply Filters
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Loading State */}
         {loading && (
@@ -380,19 +695,20 @@ const Report = () => {
                   <table className="w-full">
                     <thead className="bg-gradient-to-r from-gray-50 to-gray-100/50 border-b border-gray-200/60">
                       <tr>
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Title</th>
+                        {/* <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Title</th> */}
                         <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Meet Link</th>
                         <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Schedule Date</th>
                         <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Start Time</th>
                         <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">On Calendar</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Status</th>
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Comments</th>
+                        {/* <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Status</th> */}
                         <th className="px-6 py-4 text-center text-sm font-semibold text-[#282F3B]">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200/60">
                       {meetings.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="px-6 py-12 text-center">
+                          <td colSpan={6} className="px-6 py-12 text-center">
                             <p className="text-muted-foreground">No meetings found</p>
                           </td>
                         </tr>
@@ -402,11 +718,11 @@ const Report = () => {
                             key={meeting.id}
                             className="hover:bg-gray-50/50 transition-colors duration-200"
                           >
-                            <td className="px-6 py-4">
+                            {/* <td className="px-6 py-4">
                               <div className="text-sm font-medium text-[#282F3B]">
                                 {meeting.meeting_title || "Untitled Meeting"}
                               </div>
-                            </td>
+                            </td> */}
                             <td className="px-6 py-4">
                               <div className="flex items-center">
                                 <LinkIcon className="w-4 h-4 mr-2 text-[#078586]" />
@@ -446,6 +762,13 @@ const Report = () => {
                               </span>
                             </td>
                             <td className="px-6 py-4">
+                              <div className="text-sm text-[#282F3B]/70 max-w-xs">
+                                <span className="line-clamp-2">
+                                  {formatComments(meeting.comments)}
+                                </span>
+                              </div>
+                            </td>
+                            {/* <td className="px-6 py-4">
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
                                 meeting.status === 'completed'
                                   ? 'bg-green-100 text-green-800'
@@ -459,7 +782,7 @@ const Report = () => {
                               }`}>
                                 {meeting.status || 'pending'}
                               </span>
-                            </td>
+                            </td> */}
                             <td className="px-6 py-4 text-center">
                               <div className="flex items-center justify-center gap-2">
                                 <Button
@@ -544,7 +867,16 @@ const Report = () => {
       </div>
 
       {/* Create Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+      <Dialog 
+        open={isCreateDialogOpen} 
+        onOpenChange={(open) => {
+          setIsCreateDialogOpen(open);
+          if (!open) {
+            setFormErrors({}); // Clear errors when dialog closes
+            setCommentsText(""); // Clear comments when dialog closes
+          }
+        }}
+      >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create Manual Meeting</DialogTitle>
@@ -577,8 +909,18 @@ const Report = () => {
                 id="meet_link"
                 placeholder="https://meet.google.com/abc-defg-hij"
                 value={formData.meet_link}
-                onChange={(e) => setFormData({ ...formData, meet_link: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, meet_link: e.target.value });
+                  // Clear error when user starts typing
+                  if (formErrors.meet_link) {
+                    setFormErrors({ ...formErrors, meet_link: undefined });
+                  }
+                }}
+                className={formErrors.meet_link ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
               />
+              {formErrors.meet_link && (
+                <p className="text-sm text-red-500 mt-1">{formErrors.meet_link}</p>
+              )}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="meeting_schedule_date">Schedule Date *</Label>
@@ -586,8 +928,18 @@ const Report = () => {
                 id="meeting_schedule_date"
                 type="date"
                 value={formData.meeting_schedule_date}
-                onChange={(e) => setFormData({ ...formData, meeting_schedule_date: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, meeting_schedule_date: e.target.value });
+                  // Clear error when user selects a date
+                  if (formErrors.meeting_schedule_date) {
+                    setFormErrors({ ...formErrors, meeting_schedule_date: undefined });
+                  }
+                }}
+                className={formErrors.meeting_schedule_date ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
               />
+              {formErrors.meeting_schedule_date && (
+                <p className="text-sm text-red-500 mt-1">{formErrors.meeting_schedule_date}</p>
+              )}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="meeting_start_time">Start Time *</Label>
@@ -595,10 +947,32 @@ const Report = () => {
                 id="meeting_start_time"
                 type="datetime-local"
                 value={formData.meeting_start_time}
-                onChange={(e) => setFormData({ ...formData, meeting_start_time: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, meeting_start_time: e.target.value });
+                  // Clear error when user selects a time
+                  if (formErrors.meeting_start_time) {
+                    setFormErrors({ ...formErrors, meeting_start_time: undefined });
+                  }
+                }}
+                className={formErrors.meeting_start_time ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
               />
+              {formErrors.meeting_start_time && (
+                <p className="text-sm text-red-500 mt-1">{formErrors.meeting_start_time}</p>
+              )}
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="comments">Comments</Label>
+              <Textarea
+                id="comments"
+                placeholder="Type"
+                value={commentsText}
+                onChange={(e) => {
+                  setCommentsText(e.target.value);
+                }}
+                className="min-h-[100px] text-sm"
+              />
+            </div>
+            {/* <div className="grid gap-2">
               <Label htmlFor="meeting_title">Meeting Title</Label>
               <Input
                 id="meeting_title"
@@ -606,8 +980,8 @@ const Report = () => {
                 value={formData.meeting_title}
                 onChange={(e) => setFormData({ ...formData, meeting_title: e.target.value })}
               />
-            </div>
-            <div className="grid gap-2">
+            </div> */}
+            {/* <div className="grid gap-2">
               <Label htmlFor="status">Status</Label>
               <select
                 id="status"
@@ -621,7 +995,7 @@ const Report = () => {
                 <option value="completed">Completed</option>
                 <option value="cancelled">Cancelled</option>
               </select>
-            </div>
+            </div> */}
           </div>
           <DialogFooter>
             <Button
@@ -650,7 +1024,16 @@ const Report = () => {
       </Dialog>
 
       {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog 
+        open={isEditDialogOpen} 
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) {
+            setCommentsText(""); // Clear comments when dialog closes
+            setFormErrors({}); // Clear errors when dialog closes
+          }
+        }}
+      >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Manual Meeting</DialogTitle>
@@ -705,6 +1088,18 @@ const Report = () => {
               />
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="edit_comments">Comments</Label>
+              <Textarea
+                id="edit_comments"
+                placeholder="Type"
+                value={commentsText}
+                onChange={(e) => {
+                  setCommentsText(e.target.value);
+                }}
+                className="min-h-[100px] text-sm"
+              />
+            </div>
+            {/* <div className="grid gap-2">
               <Label htmlFor="edit_meeting_title">Meeting Title</Label>
               <Input
                 id="edit_meeting_title"
@@ -712,8 +1107,8 @@ const Report = () => {
                 value={formData.meeting_title}
                 onChange={(e) => setFormData({ ...formData, meeting_title: e.target.value })}
               />
-            </div>
-            <div className="grid gap-2">
+            </div> */}
+            {/* <div className="grid gap-2">
               <Label htmlFor="edit_status">Status</Label>
               <select
                 id="edit_status"
@@ -727,7 +1122,7 @@ const Report = () => {
                 <option value="completed">Completed</option>
                 <option value="cancelled">Cancelled</option>
               </select>
-            </div>
+            </div> */}
           </div>
           <DialogFooter>
             <Button
@@ -766,8 +1161,11 @@ const Report = () => {
           </DialogHeader>
           {selectedMeeting && (
             <div className="py-4">
-              <p className="text-sm text-muted-foreground">
+              {/* <p className="text-sm text-muted-foreground">
                 <strong>Title:</strong> {selectedMeeting.meeting_title || "Untitled Meeting"}
+              </p> */}
+              <p className="text-sm text-muted-foreground">
+                <strong>Meet Link:</strong> {selectedMeeting.meet_link}
               </p>
               <p className="text-sm text-muted-foreground mt-2">
                 <strong>Date:</strong> {formatDate(selectedMeeting.meeting_schedule_date)}
