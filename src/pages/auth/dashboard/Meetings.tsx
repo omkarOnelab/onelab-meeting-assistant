@@ -10,7 +10,8 @@ import {
   User,
   ArrowRight,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  MoreHorizontal
 } from "lucide-react";
 import axios from "axios";
 import { useSelector } from 'react-redux';
@@ -211,6 +212,68 @@ const Meetings = () => {
     setSearchTerm("");
     setAppliedSearchTerm("");
     setCurrentPage(1);
+  };
+
+  // Generate pagination page numbers with smart display
+  const getPaginationPages = (): (number | string)[] => {
+    const pages: (number | string)[] = [];
+    const maxVisible = 7; // Maximum number of page buttons to show
+    
+    if (totalPages <= maxVisible) {
+      // If total pages is less than max, show all
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    // Always show first page
+    pages.push(1);
+
+    // Determine which pages to show around current page
+    let showStartEllipsis = false;
+    let showEndEllipsis = false;
+    let startPage = 0;
+    let endPage = 0;
+
+    if (currentPage <= 3) {
+      // Near the start: show 1, 2, 3, 4, ..., last
+      startPage = 2;
+      endPage = 4;
+      showEndEllipsis = true;
+    } else if (currentPage >= totalPages - 2) {
+      // Near the end: show 1, ..., last-3, last-2, last-1, last
+      startPage = totalPages - 3;
+      endPage = totalPages - 1;
+      showStartEllipsis = true;
+    } else {
+      // In the middle: show 1, ..., current-1, current, current+1, ..., last
+      startPage = currentPage - 1;
+      endPage = currentPage + 1;
+      showStartEllipsis = true;
+      showEndEllipsis = true;
+    }
+
+    // Add start ellipsis if needed
+    if (showStartEllipsis && startPage > 2) {
+      pages.push('ellipsis-start');
+    }
+
+    // Add middle pages
+    for (let i = startPage; i <= endPage; i++) {
+      if (i > 1 && i < totalPages) {
+        pages.push(i);
+      }
+    }
+
+    // Add end ellipsis if needed
+    if (showEndEllipsis && endPage < totalPages - 1) {
+      pages.push('ellipsis-end');
+    }
+
+    // Always show last page
+    if (totalPages > 1) {
+      pages.push(totalPages);
+    }
+
+    return pages;
   };
 
   return (
@@ -433,24 +496,39 @@ const Meetings = () => {
                 </div>
 
                 <div className="flex items-center space-x-3">
-                  <span className="text-sm text-[#282F3B]/70 font-medium">
+                  <span className="text-sm text-[#282F3B]/70 font-medium whitespace-nowrap">
                     Page {currentPage} of {totalPages}
                   </span>
-                  <div className="flex space-x-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <Button
-                        key={page}
-                        variant={currentPage === page ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePageChange(page)}
-                        className={`w-8 h-8 p-0 rounded-lg font-medium transition-all duration-200 text-sm ${currentPage === page
-                          ? "bg-[#078586] text-white shadow-lg"
-                          : "border-2 border-gray-200/60 hover:border-[#078586] hover:bg-[#078586]/10 text-[#282F3B] hover:text-[#078586]"
+                  <div className="flex items-center space-x-1 overflow-x-auto max-w-full">
+                    {getPaginationPages().map((page, index) => {
+                      if (page === 'ellipsis-start' || page === 'ellipsis-end') {
+                        return (
+                          <span
+                            key={`ellipsis-${index}`}
+                            className="flex h-8 w-8 items-center justify-center text-[#282F3B]/50 flex-shrink-0"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </span>
+                        );
+                      }
+                      
+                      const pageNum = page as number;
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`w-8 h-8 p-0 rounded-lg font-medium transition-all duration-200 text-sm flex-shrink-0 ${
+                            currentPage === pageNum
+                              ? "bg-[#078586] text-white shadow-lg"
+                              : "border-2 border-gray-200/60 hover:border-[#078586] hover:bg-[#078586]/10 text-[#282F3B] hover:text-[#078586]"
                           }`}
-                      >
-                        {page}
-                      </Button>
-                    ))}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

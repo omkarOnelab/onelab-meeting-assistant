@@ -524,20 +524,42 @@ const MeetingDetail = () => {
                   size="sm"
                   onClick={() => {
                     try {
-                      const transcriptData = meeting.transcription ? JSON.parse(meeting.transcription) : [];
+                      // Handle transcription data - it might be already parsed or need parsing
+                      let transcriptData = [];
+
+                      if (meeting.transcription) {
+                        if (typeof meeting.transcription === 'string') {
+                          try {
+                            // If it's a string, parse it
+                            transcriptData = JSON.parse(meeting.transcription);
+                          } catch (parseError) {
+                            console.error('Error parsing transcription string:', parseError);
+                            copyToClipboard("Error parsing transcript", "Transcript");
+                            return;
+                          }
+                        } else if (Array.isArray(meeting.transcription)) {
+                          // If it's already an array, use it directly
+                          transcriptData = meeting.transcription;
+                        } else if (typeof meeting.transcription === 'object') {
+                          // If it's an object, try to convert to array
+                          transcriptData = Object.values(meeting.transcription);
+                        }
+                      }
+
                       if (!Array.isArray(transcriptData) || transcriptData.length === 0) {
                         copyToClipboard("No transcript available", "Transcript");
                         return;
                       }
 
                       const formattedTranscript = transcriptData.map((entry: any, index: number) => {
-                        const speaker = entry.speaker || (entry.socket === 1 ? "Speaker 1" : entry.socket === 2 ? "Speaker 2" : `Speaker ${entry.socket}`);
-                        const timestamp = entry.timestamp ? convertToIST(entry.timestamp) : `${Math.floor(index * 0.5)}:${String(index * 30 % 60).padStart(2, '0')}`;
-                        return `[${timestamp}] ${speaker}: ${entry.text}`;
+                        const speaker = entry.speaker || (entry.socket === 1 ? "Speaker 1" : entry.socket === 2 ? "Speaker 2" : `Speaker ${entry.socket || index + 1}`);
+                        const timestamp = entry.timestamp ? convertToIST(entry.timestamp) : (entry.start_s ? `${Math.floor(entry.start_s / 60)}:${String(Math.floor(entry.start_s % 60)).padStart(2, '0')}` : `${Math.floor(index * 0.5)}:${String(index * 30 % 60).padStart(2, '0')}`);
+                        return `[${timestamp}] ${speaker}: ${entry.text || ''}`;
                       }).join('\n\n');
 
                       copyToClipboard(formattedTranscript, "Transcript");
                     } catch (error) {
+                      console.error('Error formatting transcript:', error);
                       copyToClipboard("Error formatting transcript", "Transcript");
                     }
                   }}
@@ -586,26 +608,35 @@ const MeetingDetail = () => {
                       );
                     }
 
-                    return transcriptData.map((entry: any, index: number) => (
-                      <div key={index} className="border-l-4 border-primary/40 pl-6 py-3 bg-gradient-to-r from-gray-50/50 to-transparent rounded-r-lg hover:shadow-sm transition-all duration-200">
-                        <div className="flex items-center justify-between mb-1">
-                          <p className="text-sm font-medium text-primary">
-                            {entry.speaker || (entry.socket === 1 ? "Speaker 1" : entry.socket === 2 ? "Speaker 2" : `Speaker ${entry.socket}`)}
-                          </p>
-                          <span className="text-xs text-gray-500">
-                            {entry.timestamp ? convertToIST(entry.timestamp) : `${Math.floor(index * 0.5)}:${String(index * 30 % 60).padStart(2, '0')}`}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-700 leading-relaxed">{entry.text}</p>
-                        {entry.highlight && (
-                          <div className="mt-1">
-                            <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-0">
-                              Highlighted
-                            </Badge>
+                    return transcriptData.map((entry: any, index: number) => {
+                      const speaker = entry.speaker || (entry.socket === 1 ? "Speaker 1" : entry.socket === 2 ? "Speaker 2" : `Speaker ${entry.socket || index + 1}`);
+                      const timestamp = entry.timestamp 
+                        ? convertToIST(entry.timestamp) 
+                        : entry.start_s 
+                          ? `${Math.floor(entry.start_s / 60)}:${String(Math.floor(entry.start_s % 60)).padStart(2, '0')}`
+                          : `${Math.floor(index * 0.5)}:${String(index * 30 % 60).padStart(2, '0')}`;
+                      
+                      return (
+                        <div key={index} className="border-l-4 border-primary/40 pl-6 py-3 bg-gradient-to-r from-gray-50/50 to-transparent rounded-r-lg hover:shadow-sm transition-all duration-200">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-sm font-medium text-primary">
+                              {speaker}
+                            </p>
+                            <span className="text-xs text-gray-500">
+                              {timestamp}
+                            </span>
                           </div>
-                        )}
-                      </div>
-                    ));
+                          <p className="text-sm text-gray-700 leading-relaxed">{entry.text || ''}</p>
+                          {entry.highlight && (
+                            <div className="mt-1">
+                              <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-0">
+                                Highlighted
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
                   } catch (error) {
                     console.error('Error parsing transcript:', error);
                     return (
