@@ -695,24 +695,24 @@ const Report = () => {
             <div className="p-8">
               <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/60 overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full table-fixed">
                     <thead className="bg-gradient-to-r from-gray-50 to-gray-100/50 border-b border-gray-200/60">
                       <tr>
                         {/* <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Title</th> */}
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Name</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Meet Link</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Schedule Date</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Start Time</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">On Calendar</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Comments</th>
+                        <th className="px-5 py-3.5 text-left text-sm font-semibold text-[#282F3B] w-[12%]">Name</th>
+                        <th className="px-5 py-3.5 text-left text-sm font-semibold text-[#282F3B] w-[20%]">Meet Link</th>
+                        <th className="px-5 py-3.5 text-left text-sm font-semibold text-[#282F3B] w-[12%]">Schedule Date</th>
+                        <th className="px-5 py-3.5 text-left text-sm font-semibold text-[#282F3B] w-[15%]">Start Time</th>
+                        <th className="px-5 py-3.5 text-left text-sm font-semibold text-[#282F3B] w-[10%]">On Calendar</th>
+                        <th className="px-5 py-3.5 text-left text-sm font-semibold text-[#282F3B] w-[18%]">Comments</th>
                         {/* <th className="px-6 py-4 text-left text-sm font-semibold text-[#282F3B]">Status</th> */}
-                        <th className="px-6 py-4 text-center text-sm font-semibold text-[#282F3B]">Actions</th>
+                        <th className="px-5 py-3.5 text-center text-sm font-semibold text-[#282F3B] w-[13%]">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200/60">
                       {meetings.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="px-6 py-12 text-center">
+                          <td colSpan={7} className="px-5 py-12 text-center">
                             <p className="text-muted-foreground">No meetings found</p>
                           </td>
                         </tr>
@@ -727,44 +727,45 @@ const Report = () => {
                                 {meeting.meeting_title || "Untitled Meeting"}
                               </div>
                             </td> */}
-                            <td className="px-6 py-4">
+                            <td className="px-5 py-3.5">
                               <div className="flex items-center">
-                                <User className="w-4 h-4 mr-2 text-[#078586]" />
-                                <span className="text-sm font-medium text-[#282F3B]">
+                                <User className="w-4 h-4 mr-2 text-[#078586] flex-shrink-0" />
+                                <span className="text-sm font-medium text-[#282F3B] truncate">
                                   {meeting.created_by_user?.full_name || "Unknown User"}
                                 </span>
                               </div>
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-5 py-3.5">
                               <div className="flex items-center">
-                                <LinkIcon className="w-4 h-4 mr-2 text-[#078586]" />
+                                <LinkIcon className="w-4 h-4 mr-2 text-[#078586] flex-shrink-0" />
                                 <a
                                   href={meeting.meet_link}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-sm text-[#078586] hover:underline truncate max-w-xs"
+                                  className="text-sm text-[#078586] hover:underline truncate block"
+                                  title={meeting.meet_link}
                                 >
                                   {meeting.meet_link}
                                 </a>
                               </div>
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-5 py-3.5">
                               <div className="flex items-center">
-                                <Calendar className="w-4 h-4 mr-2 text-[#078586]" />
-                                <span className="text-sm text-[#282F3B]/70">
+                                <Calendar className="w-4 h-4 mr-2 text-[#078586] flex-shrink-0" />
+                                <span className="text-sm text-[#282F3B]/70 truncate">
                                   {formatDate(meeting.meeting_schedule_date)}
                                 </span>
                               </div>
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-5 py-3.5">
                               <div className="flex items-center">
-                                <Clock className="w-4 h-4 mr-2 text-[#078586]" />
-                                <span className="text-sm text-[#282F3B]/70">
+                                <Clock className="w-4 h-4 mr-2 text-[#078586] flex-shrink-0" />
+                                <span className="text-sm text-[#282F3B]/70 truncate">
                                   {formatDateTime(meeting.meeting_start_time)}
                                 </span>
                               </div>
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-5 py-3.5">
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                 meeting.was_scheduled_on_calendar
                                   ? 'bg-green-100 text-green-800'
@@ -773,9 +774,9 @@ const Report = () => {
                                 {meeting.was_scheduled_on_calendar ? 'Yes' : 'No'}
                               </span>
                             </td>
-                            <td className="px-6 py-4">
-                              <div className="text-sm text-[#282F3B]/70 max-w-xs">
-                                <span className="line-clamp-2">
+                            <td className="px-5 py-3.5">
+                              <div className="text-sm text-[#282F3B]/70">
+                                <span className="break-words whitespace-normal">
                                   {formatComments(meeting.comments)}
                                 </span>
                               </div>
@@ -795,13 +796,13 @@ const Report = () => {
                                 {meeting.status || 'pending'}
                               </span>
                             </td> */}
-                            <td className="px-6 py-4 text-center">
+                            <td className="px-5 py-3.5 text-center">
                               <div className="flex items-center justify-center gap-2">
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleEdit(meeting)}
-                                  className="border-2 border-gray-200/60 hover:border-[#078586] hover:bg-[#078586]/10 text-[#282F3B] hover:text-[#078586] px-3 py-1 rounded-lg transition-all duration-200 text-sm"
+                                  className="border-2 border-gray-200/60 hover:border-[#078586] hover:bg-[#078586]/10 text-[#282F3B] hover:text-[#078586] px-2.5 py-1.5 rounded-lg transition-all duration-200 h-8 w-8 p-0"
                                 >
                                   <Edit className="w-4 h-4" />
                                 </Button>
@@ -809,7 +810,7 @@ const Report = () => {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleDelete(meeting)}
-                                  className="border-2 border-red-200/60 hover:border-red-500 hover:bg-red-50 text-red-600 hover:text-red-700 px-3 py-1 rounded-lg transition-all duration-200 text-sm"
+                                  className="border-2 border-red-200/60 hover:border-red-500 hover:bg-red-50 text-red-600 hover:text-red-700 px-2.5 py-1.5 rounded-lg transition-all duration-200 h-8 w-8 p-0"
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </Button>
