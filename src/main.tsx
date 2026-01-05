@@ -6,7 +6,11 @@ import { Provider } from 'react-redux'
 import { PersistGate } from 'redux-persist/integration/react'
 import store, { persistor } from './redux/store'
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import { setStoreInstance } from './utils/tokenProvider'
 import './index.css'
+
+// Initialize token provider with store instance
+setStoreInstance(store);
 
 
 // Simple loading component for PersistGate

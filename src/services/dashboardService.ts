@@ -12,6 +12,7 @@ import type {
   CreateInsightRequest,
   UpdateInsightRequest
 } from '../types/dashboard';
+import { getAuthToken } from '../utils/tokenProvider';
 
 // Dashboard Stats Types
 export interface DashboardStats {
@@ -54,9 +55,12 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.warn('dashboardService: No auth token found in Redux or localStorage');
     }
     return config;
   },

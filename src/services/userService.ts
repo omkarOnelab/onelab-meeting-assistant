@@ -3,6 +3,7 @@
 // Now using real backend API at http://127.0.0.1:8000/
 
 import axios from 'axios';
+import { getAuthToken } from '../utils/tokenProvider';
 
 // Base API configuration
 const API_BASE_URL = import.meta.env.VITE_PUBLIC_AUTH_URL || 'http://127.0.0.1:8000/api';
@@ -21,9 +22,12 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.warn('userService: No auth token found in Redux or localStorage');
     }
     return config;
   },

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button, Dropdown, Avatar, Space, message } from 'antd';
 import type { MenuProps } from 'antd';
 import { User, LogOut, Plus, Calendar, AlertCircle } from "lucide-react";
@@ -27,22 +27,40 @@ const DashboardHeader = () => {
   const [isCheckingCalendar, setIsCheckingCalendar] = useState(false);
   const [lastCalendarCheck, setLastCalendarCheck] = useState<number>(0);
   const [lastClickTime, setLastClickTime] = useState<number>(0);
+  const [isInitializing, setIsInitializing] = useState(true); // Track initial load
+  const hasCheckedRef = useRef(false); // Track if we've checked at least once
 
   // Refresh calendar status when component mounts and user is authenticated
   useEffect(() => {
     if (user && user.id) {
       // Only check if we haven't checked recently (within last 30 seconds)
       const now = Date.now();
+      
       if (now - lastCalendarCheck > 30000) {
-        // Small delay to ensure auth state is fully loaded
-        const timer = setTimeout(() => {
-          checkAuthorization();
-          setLastCalendarCheck(now);
-        }, 500);
+        // Check authorization immediately - auth state is already loaded via redux-persist
+        const checkAuth = async () => {
+          try {
+            await checkAuthorization();
+            setLastCalendarCheck(now);
+            hasCheckedRef.current = true;
+          } catch (error) {
+            console.error('Error checking authorization:', error);
+          } finally {
+            // Mark initialization as complete
+            setIsInitializing(false);
+          }
+        };
         
-        return () => clearTimeout(timer);
+        checkAuth();
+      } else {
+        // Already checked recently, no need to check again
+        setIsInitializing(false);
       }
+    } else if (user === null) {
+      // User is explicitly null (not logged in), stop initializing
+      setIsInitializing(false);
     }
+    // If user is undefined (still loading from persist), keep initializing = true
   }, [user, checkAuthorization, lastCalendarCheck]);
 
   const handleLogout = () => {
@@ -56,7 +74,7 @@ const DashboardHeader = () => {
   const handleAddExtension = async () => {
     // Prevent multiple simultaneous calls and rapid clicking
     const now = Date.now();
-    if (isCheckingCalendar || calendarLoading || (now - lastClickTime < 1000)) {
+    if (isCheckingCalendar || calendarLoading || isInitializing || (now - lastClickTime < 1000)) {
       return;
     }
     
@@ -180,17 +198,19 @@ const DashboardHeader = () => {
         {/* Add Extension Button */}
         <Button 
           type="default" 
-          icon={isCheckingCalendar || calendarLoading ? <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-[#078586]"></div> : <Plus size={16} />}
+          icon={isInitializing || isCheckingCalendar || calendarLoading ? <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-[#078586]"></div> : <Plus size={16} />}
           onClick={handleAddExtension}
-          loading={isCheckingCalendar || calendarLoading}
-          // disabled={isCheckingCalendar || calendarLoading}
-          disabled={true}
+          loading={isInitializing || isCheckingCalendar || calendarLoading}
+          disabled={isInitializing || isCheckingCalendar || calendarLoading}
+          // disabled={true}
         >
-          {isCheckingCalendar 
-            ? 'Checking...' 
-            : calendarLoading 
-              ? 'Loading Calendar...' 
-              : 'Add Extension'
+          {isInitializing
+            ? 'Loading...'
+            : isCheckingCalendar 
+              ? 'Checking...' 
+              : calendarLoading 
+                ? 'Loading Calendar...' 
+                : 'Add Extension'
           }
         </Button>
 

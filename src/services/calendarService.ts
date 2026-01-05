@@ -8,6 +8,7 @@ import type {
   CalendarEventsResponse,
   CalendarTokenStatus
 } from '../types/calendar';
+import { getAuthToken } from '../utils/tokenProvider';
 
 // Base API configuration
 const API_BASE_URL = import.meta.env.VITE_PUBLIC_AUTH_URL || 'http://127.0.0.1:8000/api';
@@ -22,9 +23,12 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.warn('calendarService: No auth token found in Redux or localStorage');
     }
     return config;
   },
@@ -107,7 +111,7 @@ export const calendarService = {
   async getTokenStatus(): Promise<ApiResponse<CalendarTokenStatus>> {
     try {
       console.log('calendarService: Getting token status...');
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       console.log('calendarService: JWT token exists:', !!token);
 
       const response = await api.get('/user/auth/google/status/');
@@ -148,7 +152,9 @@ export const calendarService = {
       }
 
       const url = `/user/calendar/events/${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-      const response = await api.get(url);
+      
+      // Use longer timeout for calendar events API (30 seconds) since it connects to Google
+      const response = await api.get(url, { timeout: 30000 });
 
       if (response.data && response.data.success) {
         return {
@@ -163,7 +169,9 @@ export const calendarService = {
       console.error('Calendar events error:', error);
 
       // Handle specific error cases
-      if (error.response?.status === 401) {
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        throw new Error('Request timed out. Google Calendar is taking longer than expected. Please try again.');
+      } else if (error.response?.status === 401) {
         throw new Error('Calendar not authorized. Please connect your Google Calendar first.');
       } else if (error.response?.data?.requires_auth) {
         throw new Error('Calendar authorization required. Please connect your Google Calendar.');
@@ -308,7 +316,7 @@ export const calendarService = {
       }
 
       // Validate token before starting authorization
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       if (!token) {
         throw new Error('Authentication required. Please log in again.');
       }

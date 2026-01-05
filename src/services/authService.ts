@@ -9,6 +9,7 @@ import type {
   BackendAuthResponse, 
   MicrosoftAuthResponse 
 } from '../types/auth';
+import { getAuthToken, getRefreshToken as getRefreshTokenFromProvider } from '../utils/tokenProvider';
 
 // Base API configuration
 const API_BASE_URL = import.meta.env.VITE_PUBLIC_AUTH_URL || 'http://127.0.0.1:8000/api';
@@ -23,9 +24,12 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.warn('authService: No auth token found in Redux or localStorage');
     }
     return config;
   },
@@ -278,18 +282,18 @@ export const authService = {
 
   // Check if user is authenticated
   isAuthenticated(): boolean {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     return !!token;
   },
 
   // Get stored token
   getToken(): string | null {
-    return localStorage.getItem('token');
+    return getAuthToken();
   },
 
   // Get stored refresh token
   getRefreshToken(): string | null {
-    return localStorage.getItem('refreshToken');
+    return getRefreshTokenFromProvider();
   },
 };
 

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { Transcript } from '../types/transcripts';
+import { getAuthToken } from '../utils/tokenProvider';
 
 const API_BASE_URL = import.meta.env.VITE_PUBLIC_AUTH_URL || 'http://127.0.0.1:8000/api';
 const api = axios.create({
@@ -12,9 +13,12 @@ const api = axios.create({
 
 // Add request interceptor to include JWT token
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = getAuthToken();
+  
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    console.warn('transcriptsService: No auth token found in Redux or localStorage');
   }
   return config;
 });

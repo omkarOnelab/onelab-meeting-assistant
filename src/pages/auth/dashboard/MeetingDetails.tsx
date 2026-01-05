@@ -617,24 +617,24 @@ const MeetingDetail = () => {
                           : `${Math.floor(index * 0.5)}:${String(index * 30 % 60).padStart(2, '0')}`;
                       
                       return (
-                        <div key={index} className="border-l-4 border-primary/40 pl-6 py-3 bg-gradient-to-r from-gray-50/50 to-transparent rounded-r-lg hover:shadow-sm transition-all duration-200">
-                          <div className="flex items-center justify-between mb-1">
-                            <p className="text-sm font-medium text-primary">
+                      <div key={index} className="border-l-4 border-primary/40 pl-6 py-3 bg-gradient-to-r from-gray-50/50 to-transparent rounded-r-lg hover:shadow-sm transition-all duration-200">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-sm font-medium text-primary">
                               {speaker}
-                            </p>
-                            <span className="text-xs text-gray-500">
+                          </p>
+                          <span className="text-xs text-gray-500">
                               {timestamp}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-700 leading-relaxed">{entry.text || ''}</p>
-                          {entry.highlight && (
-                            <div className="mt-1">
-                              <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-0">
-                                Highlighted
-                              </Badge>
-                            </div>
-                          )}
+                          </span>
                         </div>
+                          <p className="text-sm text-gray-700 leading-relaxed">{entry.text || ''}</p>
+                        {entry.highlight && (
+                          <div className="mt-1">
+                            <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-0">
+                              Highlighted
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
                       );
                     });
                   } catch (error) {

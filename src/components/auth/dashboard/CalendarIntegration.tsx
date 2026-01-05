@@ -31,6 +31,8 @@ const CalendarIntegration: React.FC = () => {
   } = useCalendar();
 
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true); // Track initial auth check
+  const [hasInitiallyFetched, setHasInitiallyFetched] = useState(false); // Track if we've fetched events at least once
 
   // Debug logging
   console.log('CalendarIntegration render:', {
@@ -38,21 +40,40 @@ const CalendarIntegration: React.FC = () => {
     loading,
     error,
     eventsCount: events.length,
-    tokenStatus
+    tokenStatus,
+    isCheckingAuth,
+    hasInitiallyFetched
   });
 
   // Check authorization status on component mount
   useEffect(() => {
     console.log('CalendarIntegration: Checking authorization on mount');
-    checkAuthorization();
+    const checkAuth = async () => {
+      try {
+        await checkAuthorization();
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+    checkAuth();
   }, [checkAuthorization]);
 
   // Auto-fetch events if authorized
   useEffect(() => {
-    if (hasAuthorization && events.length === 0) {
-      fetchMeetEvents({ max_results: 10, days_ahead: 30 });
+    if (hasAuthorization && !hasInitiallyFetched) {
+      const fetchInitialEvents = async () => {
+        try {
+          await fetchMeetEvents({ max_results: 10, days_ahead: 30 });
+        } catch (error: any) {
+          console.error('Initial fetch error:', error);
+          // Don't show error message on initial load - user will see error state in UI
+        } finally {
+          setHasInitiallyFetched(true);
+        }
+      };
+      fetchInitialEvents();
     }
-  }, [hasAuthorization, events.length, fetchMeetEvents]);
+  }, [hasAuthorization, hasInitiallyFetched, fetchMeetEvents]);
 
   const handleConnectCalendar = async () => {
     try {
@@ -79,10 +100,34 @@ const CalendarIntegration: React.FC = () => {
 
   const handleRefreshEvents = async () => {
     try {
+      // Show info message that this may take time
+      const loadingMessage = message.loading('Fetching events from Google Calendar... This may take a moment.', 0);
+      
       await refreshEvents();
-      message.success('Calendar events refreshed');
+      
+      // Close loading message
+      loadingMessage();
+      message.success('Calendar events refreshed successfully!');
     } catch (error: any) {
-      message.error('Failed to refresh events');
+      console.error('Refresh events error:', error);
+      
+      // Show specific error message
+      if (error.message?.includes('timeout')) {
+        message.error({
+          content: 'Google Calendar is taking too long to respond. Please try again in a moment.',
+          duration: 5
+        });
+      } else if (error.message?.includes('not authorized')) {
+        message.error({
+          content: 'Calendar connection lost. Please reconnect your Google Calendar.',
+          duration: 5
+        });
+      } else {
+        message.error({
+          content: error.message || 'Failed to refresh events. Please try again.',
+          duration: 5
+        });
+      }
     }
   };
 
@@ -127,6 +172,25 @@ const CalendarIntegration: React.FC = () => {
   const getAttendeeCount = (attendees: any[]) => {
     return attendees?.length || 0;
   };
+
+  // Show loading state while checking authorization
+  if (isCheckingAuth) {
+    return (
+      <Card className="bg-white border-0 shadow-card" data-calendar-section>
+        <CardHeader className="text-center pb-4">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-500/10 to-blue-600/10 rounded-full flex items-center justify-center mb-4">
+            <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+          </div>
+          <CardTitle className="text-xl font-semibold text-foreground">
+            Checking Calendar Status
+          </CardTitle>
+          <CardDescription className="text-muted-foreground">
+            Please wait while we check your Google Calendar connection...
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   if (!hasAuthorization) {
     return (
@@ -222,7 +286,8 @@ const CalendarIntegration: React.FC = () => {
           </div>
         )}
 
-        {loading && events.length === 0 ? (
+        {/* Show loading if we haven't fetched initially OR if loading with no events */}
+        {(!hasInitiallyFetched || (loading && events.length === 0)) ? (
           <div className="flex items-center justify-center py-8">
             <div className="text-center">
               <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-2" />

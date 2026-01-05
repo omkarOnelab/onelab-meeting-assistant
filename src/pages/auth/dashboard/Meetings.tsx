@@ -514,19 +514,19 @@ const Meetings = () => {
                       
                       const pageNum = page as number;
                       return (
-                        <Button
+                      <Button
                           key={pageNum}
                           variant={currentPage === pageNum ? "default" : "outline"}
-                          size="sm"
+                        size="sm"
                           onClick={() => handlePageChange(pageNum)}
                           className={`w-8 h-8 p-0 rounded-lg font-medium transition-all duration-200 text-sm flex-shrink-0 ${
                             currentPage === pageNum
-                              ? "bg-[#078586] text-white shadow-lg"
-                              : "border-2 border-gray-200/60 hover:border-[#078586] hover:bg-[#078586]/10 text-[#282F3B] hover:text-[#078586]"
+                          ? "bg-[#078586] text-white shadow-lg"
+                          : "border-2 border-gray-200/60 hover:border-[#078586] hover:bg-[#078586]/10 text-[#282F3B] hover:text-[#078586]"
                           }`}
-                        >
+                      >
                           {pageNum}
-                        </Button>
+                      </Button>
                       );
                     })}
                   </div>
